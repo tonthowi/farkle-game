@@ -44,7 +44,7 @@ export function Home() {
             FARKLE
           </h1>
           <p className="font-cinzel text-parchment-dim text-sm tracking-[0.3em] mt-1">
-            KINGDOM COME
+            TAVERN DICE GAME
           </p>
         </motion.div>
 
