@@ -1,0 +1,91 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Inter:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html, body, #root {
+    height: 100%;
+    width: 100%;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background-color: #1a0f00;
+    color: #f5e6c8;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-gold text-wood-dark font-cinzel font-semibold px-6 py-3 rounded-lg
+           border border-gold-bright hover:bg-gold-bright active:bg-gold-dim
+           transition-all duration-200 shadow-lg hover:shadow-gold/40
+           disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply bg-wood text-parchment font-cinzel font-semibold px-6 py-3 rounded-lg
+           border border-parchment-dim hover:bg-wood-light hover:border-parchment
+           transition-all duration-200
+           disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+
+  .btn-danger {
+    @apply bg-danger text-white font-cinzel font-semibold px-6 py-3 rounded-lg
+           border border-danger-light hover:bg-danger-light
+           transition-all duration-200
+           disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+
+  .card {
+    @apply bg-wood rounded-xl border border-wood-light shadow-xl p-6;
+  }
+
+  .card-felt {
+    @apply bg-felt rounded-xl border border-felt-light shadow-xl p-6;
+  }
+
+  .score-display {
+    @apply font-cinzel text-gold-bright tabular-nums;
+  }
+
+  .section-title {
+    @apply font-cinzel text-gold text-lg font-semibold tracking-wider uppercase;
+  }
+}
+
+/* Dice 3D perspective */
+.dice-board {
+  perspective: 600px;
+}
+
+.die-3d {
+  transform-style: preserve-3d;
+  transition: transform 0.15s ease-out;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #1a0f00;
+}
+::-webkit-scrollbar-thumb {
+  background: #4a2c00;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #6b3f00;
+}
