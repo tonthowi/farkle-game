@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useProfile } from '../hooks/useProfile';
@@ -8,13 +8,21 @@ import { Button } from '../components/ui/Button';
 
 export function Profile() {
   const navigate = useNavigate();
-  const { profile, updateProfile } = useProfile();
+  const { profile, profileLoading, updateProfile } = useProfile();
   const [editName, setEditName] = useState(profile.name);
   const [editAvatar, setEditAvatar] = useState(profile.avatar);
   const [saved, setSaved] = useState(false);
 
-  function handleSave() {
-    updateProfile({ name: editName || 'Traveller', avatar: editAvatar });
+  // Sync edit fields once profile loads from Supabase
+  useEffect(() => {
+    if (!profileLoading) {
+      setEditName(profile.name);
+      setEditAvatar(profile.avatar);
+    }
+  }, [profileLoading]);
+
+  async function handleSave() {
+    await updateProfile({ name: editName || 'Traveller', avatar: editAvatar });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   }

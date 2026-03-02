@@ -49,7 +49,7 @@ function MatchRow({ record }: { record: MatchRecord }) {
 
 export function History() {
   const navigate = useNavigate();
-  const { history, wipeHistory } = useHistory();
+  const { history, historyLoading, wipeHistory } = useHistory();
 
   return (
     <div className="min-h-screen bg-wood-dark flex flex-col">
@@ -75,7 +75,12 @@ export function History() {
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 max-w-md mx-auto w-full">
-        {history.length === 0 ? (
+        {historyLoading ? (
+          <div className="flex flex-col items-center justify-center h-64 gap-4">
+            <span className="text-4xl opacity-40 animate-pulse">📜</span>
+            <p className="font-cinzel text-parchment-dim animate-pulse">Loading history…</p>
+          </div>
+        ) : history.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 gap-4">
             <span className="text-6xl opacity-30">📜</span>
             <p className="font-cinzel text-parchment-dim text-center">

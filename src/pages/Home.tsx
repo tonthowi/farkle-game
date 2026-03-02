@@ -2,10 +2,12 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '../components/ui/Button';
 import { useProfile } from '../hooks/useProfile';
+import { useAuth } from '../contexts/AuthContext';
 
 export function Home() {
   const navigate = useNavigate();
-  const { profile } = useProfile();
+  const { profile, profileLoading } = useProfile();
+  const { signOut } = useAuth();
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -53,19 +55,32 @@ export function Home() {
           variants={itemVariants}
           className="bg-wood border border-wood-light rounded-xl px-5 py-3 flex items-center gap-3 w-full"
         >
-          <span className="text-3xl">{profile.avatar}</span>
+          <span className={`text-3xl ${profileLoading ? 'opacity-40' : ''}`}>
+            {profile.avatar}
+          </span>
           <div>
-            <p className="font-cinzel text-parchment text-sm font-semibold">{profile.name}</p>
+            <p className="font-cinzel text-parchment text-sm font-semibold">
+              {profileLoading ? '…' : profile.name}
+            </p>
             <p className="text-parchment-dim text-xs font-cinzel">
-              {profile.stats.wins}W · {profile.stats.losses}L
+              {profileLoading ? '' : `${profile.stats.wins}W · ${profile.stats.losses}L`}
             </p>
           </div>
-          <button
-            onClick={() => navigate('/profile')}
-            className="ml-auto text-parchment-dim text-xs font-cinzel hover:text-gold transition-colors"
-          >
-            Edit ›
-          </button>
+          <div className="ml-auto flex items-center gap-3">
+            <button
+              onClick={() => navigate('/profile')}
+              className="text-parchment-dim text-xs font-cinzel hover:text-gold transition-colors"
+            >
+              Edit ›
+            </button>
+            <button
+              onClick={() => signOut()}
+              className="text-parchment-dim text-xs font-cinzel hover:text-danger transition-colors"
+              title="Sign out"
+            >
+              Sign out
+            </button>
+          </div>
         </motion.div>
 
         {/* Play buttons */}

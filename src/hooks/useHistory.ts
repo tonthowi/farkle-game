@@ -1,19 +1,86 @@
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { MatchRecord } from '../types/history';
-import { getHistory, addMatch, clearHistory } from '../utils/storage';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
+
+function rowToRecord(row: Record<string, unknown>): MatchRecord {
+  return {
+    id: row.id as string,
+    date: row.date as string,
+    mode: row.mode as MatchRecord['mode'],
+    players: row.players as MatchRecord['players'],
+    winnerName: row.winner_name as string,
+    durationSeconds: row.duration_seconds as number,
+    targetScore: row.target_score as number,
+  };
+}
 
 export function useHistory() {
-  const [history, setHistory] = useState<MatchRecord[]>(getHistory);
+  const { user } = useAuth();
+  const [history, setHistory] = useState<MatchRecord[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
 
-  const recordMatch = useCallback((record: MatchRecord) => {
-    addMatch(record);
-    setHistory(getHistory());
-  }, []);
+  // Fetch match history from Supabase when user is known
+  useEffect(() => {
+    if (!user) {
+      setHistoryLoading(false);
+      return;
+    }
 
-  const wipeHistory = useCallback(() => {
-    clearHistory();
-    setHistory([]);
-  }, []);
+    setHistoryLoading(true);
+    supabase
+      .from('match_history')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(50)
+      .then(({ data, error }) => {
+        if (!error && data) {
+          setHistory(data.map((row) => rowToRecord(row as Record<string, unknown>)));
+        }
+        setHistoryLoading(false);
+      });
+  }, [user]);
 
-  return { history, recordMatch, wipeHistory };
+  // Insert a new match record
+  const recordMatch = useCallback(
+    async (record: MatchRecord) => {
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('match_history')
+        .insert({
+          user_id: user.id,
+          date: record.date,
+          mode: record.mode,
+          players: record.players,
+          winner_name: record.winnerName,
+          duration_seconds: record.durationSeconds,
+          target_score: record.targetScore,
+        })
+        .select()
+        .single();
+
+      if (!error && data) {
+        setHistory((prev) =>
+          [rowToRecord(data as Record<string, unknown>), ...prev].slice(0, 50)
+        );
+      }
+    },
+    [user]
+  );
+
+  // Delete all history for the current user
+  const wipeHistory = useCallback(async () => {
+    if (!user) return;
+
+    const { error } = await supabase
+      .from('match_history')
+      .delete()
+      .eq('user_id', user.id);
+
+    if (!error) setHistory([]);
+  }, [user]);
+
+  return { history, historyLoading, recordMatch, wipeHistory };
 }
