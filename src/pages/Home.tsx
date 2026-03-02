@@ -4,6 +4,27 @@ import { Button } from '../components/ui/Button';
 import { useProfile } from '../hooks/useProfile';
 import { useAuth } from '../contexts/AuthContext';
 
+const PIP_POSITIONS: Record<number, [number, number][]> = {
+  1: [[50, 50]],
+  2: [[25, 25], [75, 75]],
+  3: [[25, 25], [50, 50], [75, 75]],
+  4: [[25, 25], [75, 25], [25, 75], [75, 75]],
+  5: [[25, 25], [75, 25], [50, 50], [25, 75], [75, 75]],
+  6: [[25, 20], [75, 20], [25, 50], [75, 50], [25, 80], [75, 80]],
+};
+
+function MiniDie({ face }: { face: number }) {
+  return (
+    <div className="w-5 h-5 rounded-md bg-dice-face border border-dice-border shrink-0">
+      <svg viewBox="0 0 100 100" className="w-full h-full p-[3px]">
+        {(PIP_POSITIONS[face] ?? []).map(([cx, cy], i) => (
+          <circle key={i} cx={cx} cy={cy} r={face === 1 ? 11 : 9} fill="#2d1b00" />
+        ))}
+      </svg>
+    </div>
+  );
+}
+
 export function Home() {
   const navigate = useNavigate();
   const { profile, profileLoading } = useProfile();
@@ -97,9 +118,17 @@ export function Home() {
             variant="secondary"
             size="lg"
             className="w-full"
-            onClick={() => navigate('/setup?mode=local-multiplayer')}
+            onClick={() => navigate('/lobby?action=create')}
           >
-            👥 Local Multiplayer
+            🏰 Create Room
+          </Button>
+          <Button
+            variant="secondary"
+            size="lg"
+            className="w-full"
+            onClick={() => navigate('/lobby?action=join')}
+          >
+            🔗 Join Room
           </Button>
         </motion.div>
 
@@ -129,18 +158,23 @@ export function Home() {
           className="w-full bg-wood/50 border border-wood-light rounded-xl p-4"
         >
           <p className="font-cinzel text-gold text-xs tracking-wider text-center mb-3 uppercase">Quick Rules</p>
-          <div className="grid grid-cols-2 gap-1 text-xs font-cinzel text-parchment-dim">
+          <div className="flex flex-col divide-y divide-wood-light/50">
             {[
-              ['Single 1', '100 pts'],
-              ['Single 5', '50 pts'],
-              ['Three 1s', '1,000 pts'],
-              ['Three of a Kind', 'Face × 100'],
-              ['Straight 1-6', '1,500 pts'],
-              ['Three Pairs', '750 pts'],
-            ].map(([rule, pts]) => (
-              <div key={rule} className="flex justify-between gap-2 py-0.5">
-                <span className="text-parchment-dim">{rule}</span>
-                <span className="text-gold font-semibold">{pts}</span>
+              { dice: [1],             label: 'Single 1',        pts: '100 pts'   },
+              { dice: [5],             label: 'Single 5',        pts: '50 pts'    },
+              { dice: [1, 1, 1],       label: 'Three 1s',        pts: '1,000 pts' },
+              { dice: [4, 4, 4],       label: 'Three of a Kind', pts: 'Face × 100'},
+              { dice: [1, 2, 3, 4, 5, 6], label: 'Straight 1–6', pts: '1,500 pts'},
+              { dice: [2, 2, 4, 4, 6, 6], label: 'Three Pairs',  pts: '750 pts'  },
+            ].map(({ dice, label, pts }) => (
+              <div key={label} className="py-2 first:pt-0 last:pb-0">
+                <div className="flex justify-between items-center mb-1.5">
+                  <span className="font-cinzel text-parchment-dim text-xs">{label}</span>
+                  <span className="font-cinzel text-gold font-semibold text-xs">{pts}</span>
+                </div>
+                <div className="flex gap-1">
+                  {dice.map((face, i) => <MiniDie key={i} face={face} />)}
+                </div>
               </div>
             ))}
           </div>

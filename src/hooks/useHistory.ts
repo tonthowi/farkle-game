@@ -44,8 +44,8 @@ export function useHistory() {
 
   // Insert a new match record
   const recordMatch = useCallback(
-    async (record: MatchRecord) => {
-      if (!user) return;
+    async (record: MatchRecord): Promise<{ error: string | null }> => {
+      if (!user) return { error: 'Not authenticated' };
 
       const { data, error } = await supabase
         .from('match_history')
@@ -61,11 +61,16 @@ export function useHistory() {
         .select()
         .single();
 
-      if (!error && data) {
+      if (error) {
+        return { error: error.message };
+      }
+
+      if (data) {
         setHistory((prev) =>
           [rowToRecord(data as Record<string, unknown>), ...prev].slice(0, 50)
         );
       }
+      return { error: null };
     },
     [user]
   );

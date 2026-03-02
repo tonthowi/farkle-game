@@ -25,45 +25,70 @@ export function useProfile() {
       .select('*')
       .eq('id', user.id)
       .single()
-      .then(({ data, error }) => {
-        if (!error && data) {
+      .then(async ({ data, error }) => {
+        if (data) {
           setProfile({
             id: data.id as string,
             name: data.username as string,
             avatar: data.avatar as string,
             stats: data.stats as UserProfile['stats'],
           });
+        } else if (error?.code === 'PGRST116') {
+          // No row found — create a default profile so future saves work
+          const defaultUsername =
+            user.user_metadata?.username ??
+            user.email?.split('@')[0] ??
+            'Traveller';
+          const defaultAvatar = user.user_metadata?.avatar ?? '🎲';
+          const { data: inserted } = await supabase
+            .from('profiles')
+            .insert({
+              id: user.id,
+              username: defaultUsername,
+              avatar: defaultAvatar,
+              stats: DEFAULT_PROFILE.stats,
+            })
+            .select()
+            .single();
+          if (inserted) {
+            setProfile({
+              id: inserted.id as string,
+              name: inserted.username as string,
+              avatar: inserted.avatar as string,
+              stats: inserted.stats as UserProfile['stats'],
+            });
+          }
         }
         setProfileLoading(false);
       });
   }, [user]);
 
-  // Update username and/or avatar
+  // Update username and/or avatar — uses upsert so it works even if no row exists
   const updateProfile = useCallback(
-    async (updates: { name?: string; avatar?: string }) => {
-      if (!user) return;
+    async (updates: { name?: string; avatar?: string }): Promise<{ error: string | null }> => {
+      if (!user) return { error: 'Not authenticated' };
 
-      const dbUpdates: Record<string, string> = {};
-      if (updates.name !== undefined) dbUpdates.username = updates.name;
-      if (updates.avatar !== undefined) dbUpdates.avatar = updates.avatar;
+      const newName = updates.name ?? profile.name;
+      const newAvatar = updates.avatar ?? profile.avatar;
 
-      const { error } = await supabase
-        .from('profiles')
-        .update(dbUpdates)
-        .eq('id', user.id);
+      const { error } = await supabase.from('profiles').upsert({
+        id: user.id,
+        username: newName,
+        avatar: newAvatar,
+        stats: profile.stats,
+      });
 
-      if (!error) {
-        setProfile((prev) => ({
-          ...prev,
-          ...(updates.name !== undefined && { name: updates.name! }),
-          ...(updates.avatar !== undefined && { avatar: updates.avatar! }),
-        }));
+      if (error) {
+        return { error: error.message };
       }
+
+      setProfile((prev) => ({ ...prev, name: newName, avatar: newAvatar }));
+      return { error: null };
     },
-    [user]
+    [user, profile.name, profile.avatar, profile.stats]
   );
 
-  // Update stats — optimistic local update + background Supabase sync
+  // Update stats — optimistic local update + background Supabase upsert
   const updateStats = useCallback(
     (
       updater:
@@ -76,11 +101,15 @@ export function useProfile() {
         const delta = typeof updater === 'function' ? updater(prev.stats) : updater;
         const newStats: UserProfile['stats'] = { ...prev.stats, ...delta };
 
-        // Fire-and-forget: write updated stats to Supabase in background
+        // Fire-and-forget: upsert so it works even if no row exists
         supabase
           .from('profiles')
-          .update({ stats: newStats })
-          .eq('id', user.id)
+          .upsert({
+            id: user.id,
+            username: prev.name,
+            avatar: prev.avatar,
+            stats: newStats,
+          })
           .then(() => {});
 
         return { ...prev, stats: newStats };

@@ -12,6 +12,7 @@ export function Profile() {
   const [editName, setEditName] = useState(profile.name);
   const [editAvatar, setEditAvatar] = useState(profile.avatar);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   // Sync edit fields once profile loads from Supabase
   useEffect(() => {
@@ -22,9 +23,14 @@ export function Profile() {
   }, [profileLoading]);
 
   async function handleSave() {
-    await updateProfile({ name: editName || 'Traveller', avatar: editAvatar });
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    setSaveError('');
+    const { error } = await updateProfile({ name: editName || 'Traveller', avatar: editAvatar });
+    if (error) {
+      setSaveError(error);
+    } else {
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    }
   }
 
   return (
@@ -69,6 +75,12 @@ export function Profile() {
             <label className="font-cinzel text-parchment-dim text-sm block mb-2">Avatar</label>
             <AvatarPicker value={editAvatar} onChange={setEditAvatar} />
           </div>
+
+          {saveError && (
+            <p className="font-cinzel text-danger-light text-xs text-center bg-danger-dark/30 border border-danger rounded-lg px-3 py-2">
+              {saveError}
+            </p>
+          )}
 
           <Button
             variant="primary"

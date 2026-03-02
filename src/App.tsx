@@ -4,6 +4,7 @@ import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { Home } from './pages/Home';
 import { Setup } from './pages/Setup';
 import { Game } from './pages/Game';
+import { Lobby } from './pages/Lobby';
 import { Profile } from './pages/Profile';
 import { History } from './pages/History';
 import { Login } from './pages/Login';
@@ -22,6 +23,7 @@ export default function App() {
           <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
           <Route path="/setup" element={<ProtectedRoute><Setup /></ProtectedRoute>} />
           <Route path="/game" element={<ProtectedRoute><Game /></ProtectedRoute>} />
+          <Route path="/lobby" element={<ProtectedRoute><Lobby /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
 

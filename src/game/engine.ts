@@ -124,13 +124,16 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...state, showPassDevice: false };
     }
 
+    case 'SYNC_REMOTE_STATE':
+      return action.state;
+
     case 'NEW_GAME': {
       const { payload } = action as GameAction & { payload: any };
       return {
         phase: 'idle',
         currentPlayerIndex: 0,
         players: payload.players.map((p: any, i: number) => ({
-          id: `player-${i}`,
+          id: p.id ?? `player-${i}`,
           name: p.name,
           avatar: p.avatar,
           totalScore: 0,

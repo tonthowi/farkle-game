@@ -16,7 +16,7 @@ export type TurnPhase =
   | 'hot-dice'    // all dice scored, must roll all 6 again
   | 'game-over';  // winner determined
 
-export type GameMode = 'vs-computer' | 'local-multiplayer';
+export type GameMode = 'vs-computer' | 'local-multiplayer' | 'online-multiplayer';
 
 export type Difficulty = 'easy' | 'medium' | 'hard';
 
@@ -45,6 +45,8 @@ export interface GameState {
   startTime: number;
   /** Show the "pass device" prompt in local multiplayer */
   showPassDevice: boolean;
+  /** Join code — set only for online-multiplayer games */
+  roomCode?: string;
 }
 
 export interface ScoreResult {
@@ -61,11 +63,12 @@ export type GameAction =
   | { type: 'CONFIRM_FARKLE' }
   | { type: 'CONFIRM_HOT_DICE' }
   | { type: 'CONFIRM_PASS' }
-  | { type: 'NEW_GAME'; payload: NewGamePayload };
+  | { type: 'NEW_GAME'; payload: NewGamePayload }
+  | { type: 'SYNC_REMOTE_STATE'; state: GameState };
 
 export interface NewGamePayload {
   mode: GameMode;
   difficulty?: Difficulty;
-  players: { name: string; avatar: string; isHuman: boolean }[];
+  players: { name: string; avatar: string; isHuman: boolean; id?: string }[];
   targetScore: number;
 }

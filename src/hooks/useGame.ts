@@ -29,20 +29,21 @@ function buildInitialState(payload: NewGamePayload): GameState {
   };
 }
 
-export function useGame(initialPayload?: NewGamePayload) {
+export function useGame(initialPayload?: NewGamePayload, initialState?: GameState) {
   const [state, dispatch] = useReducer(
     gameReducer,
-    initialPayload
-      ? buildInitialState(initialPayload)
-      : buildInitialState({
-          mode: 'vs-computer',
-          difficulty: 'medium',
-          players: [
-            { name: 'Player', avatar: '🎲', isHuman: true },
-            { name: 'Computer', avatar: '💀', isHuman: false },
-          ],
-          targetScore: 10000,
-        })
+    initialState ??
+      (initialPayload
+        ? buildInitialState(initialPayload)
+        : buildInitialState({
+            mode: 'vs-computer',
+            difficulty: 'medium',
+            players: [
+              { name: 'Player', avatar: '🎲', isHuman: true },
+              { name: 'Computer', avatar: '💀', isHuman: false },
+            ],
+            targetScore: 10000,
+          }))
   );
 
   const aiTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
