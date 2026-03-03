@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import type { UserProfile } from '../types/player';
 import { DEFAULT_PROFILE } from '../types/player';
 import { supabase } from '../lib/supabase';
+import { log } from '../lib/logger';
 import { useAuth } from '../contexts/AuthContext';
 
 export function useProfile() {
@@ -110,7 +111,9 @@ export function useProfile() {
             avatar: prev.avatar,
             stats: newStats,
           })
-          .then(() => {});
+          .then(({ error }) => {
+            if (error) log.warn('Stats sync failed:', error.message);
+          });
 
         return { ...prev, stats: newStats };
       });

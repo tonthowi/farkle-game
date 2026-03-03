@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useProfile } from '../hooks/useProfile';
+import { useAuth } from '../contexts/AuthContext';
 import { ProfileCard } from '../components/profile/ProfileCard';
 import { AvatarPicker } from '../components/profile/AvatarPicker';
 import { Button } from '../components/ui/Button';
 
 export function Profile() {
   const navigate = useNavigate();
+  const { isGuest } = useAuth();
   const { profile, profileLoading, updateProfile } = useProfile();
   const [editName, setEditName] = useState(profile.name);
   const [editAvatar, setEditAvatar] = useState(profile.avatar);
@@ -47,6 +49,31 @@ export function Profile() {
       </div>
 
       <div className="flex-1 p-4 space-y-5 max-w-md mx-auto w-full">
+        {/* Guest banner */}
+        {isGuest && (
+          <motion.div
+            className="bg-wood border border-gold/30 rounded-xl p-4 flex items-start gap-3"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <span className="text-2xl shrink-0">🎭</span>
+            <div className="flex-1 min-w-0">
+              <p className="font-cinzel text-parchment font-semibold text-sm mb-0.5">
+                Playing as a Guest
+              </p>
+              <p className="font-cinzel text-parchment-dim text-xs leading-relaxed">
+                Your profile vanishes when you leave. Create an account to keep your legend.
+              </p>
+            </div>
+            <button
+              onClick={() => navigate('/signup')}
+              className="font-cinzel text-gold text-xs hover:text-gold-bright transition-colors whitespace-nowrap shrink-0 underline underline-offset-2"
+            >
+              Sign Up →
+            </button>
+          </motion.div>
+        )}
+
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
           <ProfileCard profile={{ ...profile, name: editName, avatar: editAvatar }} />
         </motion.div>

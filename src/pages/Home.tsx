@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '../components/ui/Button';
 import { useProfile } from '../hooks/useProfile';
@@ -28,7 +28,7 @@ function MiniDie({ face }: { face: number }) {
 export function Home() {
   const navigate = useNavigate();
   const { profile, profileLoading } = useProfile();
-  const { signOut } = useAuth();
+  const { signOut, isGuest } = useAuth();
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -79,27 +79,43 @@ export function Home() {
           <span className={`text-3xl ${profileLoading ? 'opacity-40' : ''}`}>
             {profile.avatar}
           </span>
-          <div>
-            <p className="font-cinzel text-parchment text-sm font-semibold">
-              {profileLoading ? '…' : profile.name}
-            </p>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <p className="font-cinzel text-parchment text-sm font-semibold truncate">
+                {profileLoading ? '…' : profile.name}
+              </p>
+              {isGuest && (
+                <span className="font-cinzel text-xs px-2 py-0.5 rounded-full border border-parchment-dim/40 text-parchment-dim leading-none shrink-0">
+                  Guest
+                </span>
+              )}
+            </div>
             <p className="text-parchment-dim text-xs font-cinzel">
               {profileLoading ? '' : `${profile.stats.wins}W · ${profile.stats.losses}L`}
             </p>
           </div>
-          <div className="ml-auto flex items-center gap-3">
-            <button
-              onClick={() => navigate('/profile')}
-              className="text-parchment-dim text-xs font-cinzel hover:text-gold transition-colors"
-            >
-              Edit ›
-            </button>
+          <div className="ml-auto flex items-center gap-3 shrink-0">
+            {isGuest ? (
+              <Link
+                to="/signup"
+                className="text-gold text-xs font-cinzel hover:text-gold-bright transition-colors underline underline-offset-2 whitespace-nowrap"
+              >
+                Create Account →
+              </Link>
+            ) : (
+              <button
+                onClick={() => navigate('/profile')}
+                className="text-parchment-dim text-xs font-cinzel hover:text-gold transition-colors"
+              >
+                Edit ›
+              </button>
+            )}
             <button
               onClick={() => signOut()}
               className="text-parchment-dim text-xs font-cinzel hover:text-danger transition-colors"
-              title="Sign out"
+              title={isGuest ? 'Leave tavern' : 'Sign out'}
             >
-              Sign out
+              {isGuest ? 'Leave' : 'Sign out'}
             </button>
           </div>
         </motion.div>

@@ -13,11 +13,17 @@ interface AuthContextValue {
   session: Session | null;
   user: User | null;
   loading: boolean;
+  isGuest: boolean;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signUp: (
     email: string,
     password: string
   ) => Promise<{ error: AuthError | null; user: User | null; session: Session | null }>;
+  signInAnonymously: () => Promise<{
+    error: AuthError | null;
+    user: User | null;
+    session: Session | null;
+  }>;
   signOut: () => Promise<void>;
 }
 
@@ -66,13 +72,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error, user: data.user, session: data.session };
   }, []);
 
+  const signInAnonymously = useCallback(async () => {
+    const { data, error } = await supabase.auth.signInAnonymously();
+    return { error, user: data.user, session: data.session };
+  }, []);
+
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
   }, []);
 
+  const isGuest = session?.user?.is_anonymous ?? false;
+
   return (
     <AuthContext.Provider
-      value={{ session, user: session?.user ?? null, loading, signIn, signUp, signOut }}
+      value={{
+        session,
+        user: session?.user ?? null,
+        loading,
+        isGuest,
+        signIn,
+        signUp,
+        signInAnonymously,
+        signOut,
+      }}
     >
       {children}
     </AuthContext.Provider>

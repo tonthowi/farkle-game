@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { log } from './logger';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -6,8 +7,8 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undef
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
 if (!isSupabaseConfigured) {
-  console.error(
-    '[Farkle] Missing Supabase env vars.\n' +
+  log.error(
+    'Missing Supabase env vars.\n' +
       'Copy .env.example → .env and fill in your Supabase URL and anon key.'
   );
 }

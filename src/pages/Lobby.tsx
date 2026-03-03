@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
+import { log } from '../lib/logger';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
 import { createDice } from '../game/dice';
@@ -190,6 +191,13 @@ export function Lobby() {
       supabase.from('profiles').select('username, avatar').eq('id', room.guest_id).single(),
     ]);
 
+    if (hostRes.error || guestRes.error) {
+      log.error('Profile fetch failed in handleStartGame', hostRes.error ?? guestRes.error);
+      setCreateError('Could not load player profiles. Please try again.');
+      setIsStarting(false);
+      return;
+    }
+
     const gameState: GameState = {
       phase: 'idle',
       currentPlayerIndex: 0,
@@ -221,10 +229,17 @@ export function Lobby() {
       roomCode,
     };
 
-    await supabase
+    const { error: updateError } = await supabase
       .from('rooms')
       .update({ game_state: gameState, status: 'playing' })
       .eq('id', roomId);
+
+    if (updateError) {
+      log.error('Room update failed:', updateError.message);
+      setCreateError('Failed to start game. Please try again.');
+      setIsStarting(false);
+      return;
+    }
 
     navigate('/game', { state: gameState, replace: true });
   }

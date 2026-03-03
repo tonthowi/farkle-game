@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { RealtimeChannel } from '@supabase/supabase-js';
@@ -9,6 +9,7 @@ import { useProfile } from '../hooks/useProfile';
 import { useHistory } from '../hooks/useHistory';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { log } from '../lib/logger';
 import { ScorePanel } from '../components/game/ScorePanel';
 import { TurnPanel } from '../components/game/TurnPanel';
 import { DiceBoard } from '../components/dice/DiceBoard';
@@ -72,6 +73,7 @@ export function Game() {
   const channelRef = useRef<RealtimeChannel | null>(null);
   // Set to true before any local dispatch so we know to broadcast after state updates.
   const pendingBroadcastRef = useRef(false);
+  const [isConnected, setIsConnected] = useState(true);
 
   useEffect(() => {
     if (!isOnlineMode || !roomCode) return;
@@ -84,7 +86,18 @@ export function Game() {
       dispatch({ type: 'SYNC_REMOTE_STATE', state: p.state as GameState });
     });
 
-    ch.subscribe();
+    ch.subscribe((status, err) => {
+      if (status === 'SUBSCRIBED') {
+        setIsConnected(true);
+        log.info(`Room channel ${roomCode} connected`);
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        setIsConnected(false);
+        log.error(`Channel error [${status}]`, err);
+      } else if (status === 'CLOSED') {
+        setIsConnected(false);
+        log.warn('Channel closed');
+      }
+    });
     channelRef.current = ch;
 
     return () => {
@@ -99,10 +112,12 @@ export function Game() {
     if (!pendingBroadcastRef.current) return;
     if (state.phase === 'rolling') return;
     pendingBroadcastRef.current = false;
-    channelRef.current.send({
+    void channelRef.current.send({
       type: 'broadcast',
       event: 'state_update',
       payload: { state },
+    }).then((status) => {
+      if (status !== 'ok') log.warn('Broadcast send failed:', status);
     });
   }, [state, isOnlineMode]);
 
@@ -165,7 +180,9 @@ export function Game() {
       durationSeconds,
       targetScore: state.targetScore,
     };
-    recordMatch(record);
+    if (!user?.is_anonymous) {
+      recordMatch(record);
+    }
 
     if (humanPlayer) {
       updateStats((prev: any) => ({
@@ -199,6 +216,13 @@ export function Game() {
             : 'Local'}
         </div>
       </div>
+
+      {/* Connection lost banner — online only */}
+      {isOnlineMode && !isConnected && (
+        <div className="bg-danger/90 text-parchment-bright font-cinzel text-xs text-center py-2 px-4">
+          Connection lost — attempting to reconnect…
+        </div>
+      )}
 
       {/* Opponent's turn banner — online only */}
       {isOnlineMode && !isMyTurn && state.phase !== 'game-over' && (

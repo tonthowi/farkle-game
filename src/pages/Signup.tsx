@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { log } from '../lib/logger';
 import { AvatarPicker } from '../components/profile/AvatarPicker';
 import { Button } from '../components/ui/Button';
 import { DEFAULT_PROFILE } from '../types/player';
@@ -44,12 +45,19 @@ export function Signup() {
 
     if (user) {
       // Insert profile row
-      await supabase.from('profiles').insert({
+      const { error: profileError } = await supabase.from('profiles').insert({
         id: user.id,
         username: username.trim(),
         avatar,
         stats: DEFAULT_PROFILE.stats,
       });
+
+      if (profileError) {
+        log.error('Profile insert failed:', profileError.message);
+        setError('Account created but profile setup failed. Please try again.');
+        setLoading(false);
+        return;
+      }
 
       if (session) {
         // Immediately logged in (email confirmation disabled in Supabase)

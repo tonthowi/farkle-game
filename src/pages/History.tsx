@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useHistory } from '../hooks/useHistory';
+import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
 import { formatDate, formatDuration, formatScore } from '../utils/format';
 import type { MatchRecord } from '../types/history';
@@ -49,6 +50,7 @@ function MatchRow({ record }: { record: MatchRecord }) {
 
 export function History() {
   const navigate = useNavigate();
+  const { isGuest } = useAuth();
   const { history, historyLoading, wipeHistory } = useHistory();
 
   return (
@@ -62,7 +64,7 @@ export function History() {
           ‹ Back
         </button>
         <h1 className="font-cinzel font-bold text-gold text-xl">Match History</h1>
-        {history.length > 0 && (
+        {!isGuest && history.length > 0 ? (
           <button
             onClick={() => {
               if (confirm('Clear all match history?')) wipeHistory();
@@ -71,11 +73,36 @@ export function History() {
           >
             Clear
           </button>
+        ) : (
+          <div className="w-10" />
         )}
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 max-w-md mx-auto w-full">
-        {historyLoading ? (
+        {isGuest ? (
+          <motion.div
+            className="flex flex-col items-center justify-center h-64 gap-5 text-center"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <span className="text-6xl opacity-40">📜</span>
+            <div>
+              <p className="font-cinzel text-parchment text-base font-semibold mb-1">
+                Your tales are unrecorded
+              </p>
+              <p className="font-cinzel text-parchment-dim text-sm">
+                Create an account to save your match history across sessions.
+              </p>
+            </div>
+            <Button variant="primary" onClick={() => navigate('/signup')}>⚔️ Create Account</Button>
+            <button
+              onClick={() => navigate('/')}
+              className="font-cinzel text-parchment-dim text-xs hover:text-parchment transition-colors"
+            >
+              Return to Tavern
+            </button>
+          </motion.div>
+        ) : historyLoading ? (
           <div className="flex flex-col items-center justify-center h-64 gap-4">
             <span className="text-4xl opacity-40 animate-pulse">📜</span>
             <p className="font-cinzel text-parchment-dim animate-pulse">Loading history…</p>
@@ -102,6 +129,7 @@ export function History() {
           </div>
         )}
       </div>
+
     </div>
   );
 }
