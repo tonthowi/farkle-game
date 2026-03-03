@@ -67,13 +67,25 @@
 
 /* Dice 3D perspective */
 .dice-board {
-  perspective: 600px;
+  perspective: 800px;
 }
 
-.die-3d {
-  transform-style: preserve-3d;
-  transition: transform 0.15s ease-out;
+/* CSS 3D cube: each face is an absolute-positioned 64×64 div.
+   translateZ(32px) = half the die width, placing the face on the cube surface. */
+.die-face {
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
+
+.die-face-front  { transform: translateZ(32px); }
+.die-face-back   { transform: rotateY(180deg)  translateZ(32px); }
+.die-face-top    { transform: rotateX(90deg)   translateZ(32px); }
+.die-face-bottom { transform: rotateX(-90deg)  translateZ(32px); }
+.die-face-right  { transform: rotateY(90deg)   translateZ(32px); }
+.die-face-left   { transform: rotateY(-90deg)  translateZ(32px); }
 
 /* Scrollbar styling */
 ::-webkit-scrollbar {
