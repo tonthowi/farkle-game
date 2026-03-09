@@ -16,7 +16,8 @@ create table if not exists profiles (
     "losses": 0,
     "bestScore": 0,
     "totalPointsScored": 0,
-    "totalFarkles": 0
+    "totalFarkles": 0,
+    "tokens": 500
   }'::jsonb,
   created_at timestamptz not null default now()
 );
@@ -62,7 +63,7 @@ begin
       'Traveller'
     ),
     coalesce(new.raw_user_meta_data->>'avatar', '🎲'),
-    '{"gamesPlayed":0,"wins":0,"losses":0,"bestScore":0,"totalPointsScored":0,"totalFarkles":0}'::jsonb
+    '{"gamesPlayed":0,"wins":0,"losses":0,"bestScore":0,"totalPointsScored":0,"totalFarkles":0,"tokens":500}'::jsonb
   )
   on conflict (id) do nothing; -- app-side insert (with real username) takes precedence
   return new;
@@ -81,7 +82,7 @@ select
   u.id,
   coalesce(split_part(u.email, '@', 1), 'Traveller'),
   '🎲',
-  '{"gamesPlayed":0,"wins":0,"losses":0,"bestScore":0,"totalPointsScored":0,"totalFarkles":0}'::jsonb
+  '{"gamesPlayed":0,"wins":0,"losses":0,"bestScore":0,"totalPointsScored":0,"totalFarkles":0,"tokens":500}'::jsonb
 from auth.users u
 left join public.profiles p on p.id = u.id
 where p.id is null;

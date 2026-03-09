@@ -1,8 +1,11 @@
+import { useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '../components/ui/Button';
+import { TokenBalance } from '../components/ui/TokenBalance';
 import { useProfile } from '../hooks/useProfile';
 import { useAuth } from '../contexts/AuthContext';
+import { useTokens } from '../hooks/useTokens';
 
 const PIP_POSITIONS: Record<number, [number, number][]> = {
   1: [[50, 50]],
@@ -29,6 +32,12 @@ export function Home() {
   const navigate = useNavigate();
   const { profile, profileLoading } = useProfile();
   const { signOut, isGuest } = useAuth();
+  const { balance, applyTopupGrants } = useTokens();
+
+  useEffect(() => {
+    applyTopupGrants();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -93,6 +102,9 @@ export function Home() {
             <p className="text-parchment-dim text-xs font-cinzel">
               {profileLoading ? '' : `${profile.stats.wins}W · ${profile.stats.losses}L`}
             </p>
+            {!isGuest && !profileLoading && (
+              <TokenBalance balance={balance} size="sm" />
+            )}
           </div>
           <div className="ml-auto flex items-center gap-3 shrink-0">
             {isGuest ? (

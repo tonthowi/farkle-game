@@ -1,0 +1,10 @@
+{
+  "grants": [
+    {
+      "id": "grant_001",
+      "userId": "replace-with-supabase-user-uuid",
+      "amount": 1000,
+      "note": "Demo manual top-up"
+    }
+  ]
+}

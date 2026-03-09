@@ -18,6 +18,8 @@ import { FarkleAlert } from '../components/game/FarkleAlert';
 import { Modal } from '../components/ui/Modal';
 import { Button } from '../components/ui/Button';
 import { formatScore } from '../utils/format';
+import { useTokens } from '../hooks/useTokens';
+import { TOKEN_CONFIG } from '../config/tokens';
 
 export function Game() {
   const navigate = useNavigate();
@@ -26,6 +28,10 @@ export function Game() {
   const { user } = useAuth();
   const { updateStats } = useProfile();
   const { recordMatch } = useHistory();
+  const { applyDelta } = useTokens();
+
+  const rewardAppliedRef = useRef(false);
+  const [tokenRewardDelta, setTokenRewardDelta] = useState<number | null>(null);
 
   // Detect online multiplayer
   const isOnlineMode = locationState?.mode === 'online-multiplayer';
@@ -68,6 +74,12 @@ export function Game() {
   const isMyTurn = isOnlineMode
     ? state.players[state.currentPlayerIndex]?.id === user?.id
     : isCurrentPlayerHuman;
+
+  // Reset reward tracking when a new game starts
+  useEffect(() => {
+    rewardAppliedRef.current = false;
+    setTokenRewardDelta(null);
+  }, [state.startTime]);
 
   // ── Realtime Broadcast channel ───────────────────────────────
   const channelRef = useRef<RealtimeChannel | null>(null);
@@ -192,6 +204,21 @@ export function Game() {
         bestScore: Math.max(prev.bestScore, humanPlayer.totalScore),
         totalPointsScored: prev.totalPointsScored + humanPlayer.totalScore,
       }));
+    }
+
+    if (!rewardAppliedRef.current && !user?.is_anonymous && state.mode !== 'local-multiplayer') {
+      rewardAppliedRef.current = true;
+      let delta = 0;
+      if (state.mode === 'vs-computer' && state.difficulty) {
+        const r = TOKEN_CONFIG.VS_COMPUTER[state.difficulty];
+        delta = humanWon ? r.win : r.loss;
+      } else if (state.mode === 'online-multiplayer') {
+        delta = humanWon ? TOKEN_CONFIG.ONLINE_MULTIPLAYER.win : TOKEN_CONFIG.ONLINE_MULTIPLAYER.loss;
+      }
+      if (delta !== 0) {
+        applyDelta(delta);
+        setTokenRewardDelta(delta);
+      }
     }
   }, [state.phase]);
 
@@ -328,7 +355,7 @@ export function Game() {
                 Final score: {formatScore(winner.totalScore)}
               </p>
 
-              <div className="space-y-2 mb-6">
+              <div className="space-y-2 mb-4">
                 {state.players.map((p) => (
                   <div key={p.id} className="flex justify-between items-center px-2">
                     <span className="font-cinzel text-parchment">
@@ -340,6 +367,12 @@ export function Game() {
                   </div>
                 ))}
               </div>
+
+              {tokenRewardDelta !== null && (
+                <p className={`font-cinzel text-sm font-bold mb-4 ${tokenRewardDelta > 0 ? 'text-gold' : 'text-danger-light'}`}>
+                  {tokenRewardDelta > 0 ? `+${tokenRewardDelta}` : tokenRewardDelta} tokens
+                </p>
+              )}
 
               <div className="flex gap-3">
                 <Button variant="secondary" className="flex-1" onClick={() => navigate('/')}>

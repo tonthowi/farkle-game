@@ -5,6 +5,7 @@ export interface PlayerStats {
   bestScore: number;
   totalPointsScored: number;
   totalFarkles: number;
+  tokens: number;
 }
 
 export interface UserProfile {
@@ -27,5 +28,6 @@ export const DEFAULT_PROFILE: UserProfile = {
     bestScore: 0,
     totalPointsScored: 0,
     totalFarkles: 0,
+    tokens: 500,
   },
 };

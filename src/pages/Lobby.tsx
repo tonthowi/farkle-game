@@ -5,6 +5,8 @@ import { supabase } from '../lib/supabase';
 import { log } from '../lib/logger';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
+import { useTokens } from '../hooks/useTokens';
+import { TOKEN_CONFIG } from '../config/tokens';
 import { createDice } from '../game/dice';
 import type { GameState } from '../types/game';
 
@@ -17,7 +19,8 @@ function generateCode(): string {
 export function Lobby() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
+  const { canAfford, applyDelta } = useTokens();
 
   const initialAction = params.get('action') as 'create' | 'join' | null;
 
@@ -42,6 +45,10 @@ export function Lobby() {
   const doCreateRoom = useCallback(async () => {
     if (!user) return;
     setCreateError('');
+    if (!isGuest && !canAfford(TOKEN_CONFIG.ONLINE_ENTRY_FEE)) {
+      setCreateError('Not enough tokens to create a room (5 tokens required).');
+      return;
+    }
     setPhase('creating');
 
     const tryInsert = async (code: string) =>
@@ -66,8 +73,9 @@ export function Lobby() {
 
     setRoomCode(finalCode);
     setRoomId(data.id);
+    if (!isGuest) applyDelta(-TOKEN_CONFIG.ONLINE_ENTRY_FEE);
     setPhase('waiting-host');
-  }, [user]);
+  }, [user, isGuest, canAfford, applyDelta]);
 
   // Auto-create if URL param is 'create'
   useEffect(() => {
@@ -173,6 +181,10 @@ export function Lobby() {
   async function handleJoin() {
     if (!user || !joinInput.trim()) return;
     setJoinError('');
+    if (!isGuest && !canAfford(TOKEN_CONFIG.ONLINE_ENTRY_FEE)) {
+      setJoinError('Not enough tokens to join a room (5 tokens required).');
+      return;
+    }
 
     const code = joinInput.trim().toUpperCase();
     const { data, error } = await supabase
@@ -203,6 +215,7 @@ export function Lobby() {
 
     setRoomId(data.id);
     setRoomCode(data.code);
+    if (!isGuest) applyDelta(-TOKEN_CONFIG.ONLINE_ENTRY_FEE);
     setPhase('waiting-guest');
   }
 

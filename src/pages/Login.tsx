@@ -110,7 +110,7 @@ export function Login() {
           </motion.div>
           <h1 className="font-cinzel font-black text-gold text-4xl tracking-wider">FARKLE</h1>
           <p className="font-cinzel text-parchment-dim text-xs tracking-[0.3em] mt-1">
-            KINGDOM COME
+            Tavern Dice Game
           </p>
         </div>
 
