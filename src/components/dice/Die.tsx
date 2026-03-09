@@ -37,16 +37,6 @@ const FACE_ROTATIONS: Record<DieValue, { x: number; y: number }> = {
   6: { x: 0,   y: 180 },  // back → viewer (180° turn)
 };
 
-// Simulated per-face lighting: lighter toward top, darker toward bottom
-const FACE_SHADE: Record<string, string> = {
-  'die-face-top':    'bg-white/10',
-  'die-face-front':  'bg-transparent',
-  'die-face-back':   'bg-black/8',
-  'die-face-right':  'bg-black/10',
-  'die-face-left':   'bg-black/10',
-  'die-face-bottom': 'bg-black/[0.18]',
-};
-
 // ─── DieFace sub-component ────────────────────────────────────────────────────
 interface DieFaceProps {
   faceClass: string;
@@ -54,20 +44,23 @@ interface DieFaceProps {
   isSelected: boolean;
   isLocked: boolean;
   isRolling: boolean;
+  isDisabled: boolean;
 }
 
-function DieFace({ faceClass, value, isSelected, isLocked, isRolling }: DieFaceProps) {
+function DieFace({ faceClass, value, isSelected, isLocked, isRolling, isDisabled }: DieFaceProps) {
   return (
     <div
       className={cn(
         'die-face rounded-xl overflow-hidden border',
         faceClass,
-        isSelected && !isLocked ? 'border-gold bg-dice-face' : 'border-dice-border bg-dice-face',
+        isSelected && !isLocked
+          ? 'border-gold bg-dice-face'
+          : isDisabled
+            ? 'border-dice-border/40 bg-dice-face'
+            : 'border-dice-border bg-dice-face',
         isLocked && 'opacity-60',
       )}
     >
-      {/* Per-face lighting overlay */}
-      <div className={cn('absolute inset-0 pointer-events-none rounded-xl', FACE_SHADE[faceClass])} />
 
       {/* Pip dots — hidden while rolling */}
       <svg
@@ -100,6 +93,7 @@ interface DieProps {
 
 export function Die({ die, onClick, disabled }: DieProps) {
   const isClickable = !disabled && !die.isLocked && onClick;
+  const isDisabled = Boolean(disabled && !die.isLocked);
 
   // ── Accumulated rotation state (never resets to 0 — prevents backtracking) ──
   const [rot, setRot] = useState<{ x: number; y: number }>(() => FACE_ROTATIONS[die.value]);
@@ -132,7 +126,11 @@ export function Die({ die, onClick, disabled }: DieProps) {
   return (
     // Outer wrapper: perspective context + click target
     <div
-      className={cn('relative select-none', isClickable && 'cursor-pointer')}
+      className={cn(
+        'relative select-none',
+        isClickable && 'cursor-pointer',
+        isDisabled && 'opacity-40 grayscale',
+      )}
       style={{ width: 64, height: 64, perspective: '600px' }}
       onClick={isClickable ? onClick : undefined}
     >
@@ -160,6 +158,7 @@ export function Die({ die, onClick, disabled }: DieProps) {
             isSelected={die.isSelected}
             isLocked={die.isLocked}
             isRolling={die.isRolling}
+            isDisabled={isDisabled}
           />
         ))}
       </motion.div>

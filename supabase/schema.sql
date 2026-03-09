@@ -24,10 +24,13 @@ create table if not exists profiles (
 alter table profiles enable row level security;
 
 -- Drop and recreate policies so re-runs don't error
+-- Any authenticated user can read any profile (username, avatar, stats
+-- are non-sensitive and needed for multiplayer opponent display).
 drop policy if exists "own_profile_select" on profiles;
-create policy "own_profile_select"
+drop policy if exists "profiles_select" on profiles;
+create policy "profiles_select"
   on profiles for select
-  using (auth.uid() = id);
+  using (auth.role() = 'authenticated');
 
 drop policy if exists "own_profile_insert" on profiles;
 create policy "own_profile_insert"
@@ -152,3 +155,8 @@ create policy "rooms_update" on rooms for update
 drop policy if exists "rooms_delete" on rooms;
 create policy "rooms_delete" on rooms for delete
   using (auth.uid() = host_id);
+
+-- ── Realtime ─────────────────────────────────────────────────
+-- Enable postgres_changes events for the rooms table so hosts
+-- and guests receive live updates (guest joined, game started).
+alter publication supabase_realtime add table rooms;

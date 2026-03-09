@@ -77,31 +77,58 @@ export function Lobby() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Subscribe to room changes while waiting as host
+  // Subscribe to room changes while waiting as host.
+  // Uses Realtime + fallback polling so the host always detects the guest.
   useEffect(() => {
     if (phase !== 'waiting-host' || !roomId) return;
 
+    let cancelled = false;
+
+    // Shared handler — works for Realtime callback, immediate check, and polling
+    async function checkForGuest() {
+      const { data } = await supabase
+        .from('rooms')
+        .select('guest_id, status')
+        .eq('id', roomId)
+        .single();
+
+      if (cancelled || !data?.guest_id) return;
+
+      const { data: gd } = await supabase
+        .from('profiles')
+        .select('username, avatar')
+        .eq('id', data.guest_id)
+        .single();
+
+      if (cancelled) return;
+
+      setGuestInfo({ name: gd?.username ?? 'Guest', avatar: gd?.avatar ?? '🎲' });
+      setGuestJoined(true);
+    }
+
+    // 1. Immediate check (guest may have joined before subscription connected)
+    checkForGuest();
+
+    // 2. Realtime subscription
     const ch = supabase
       .channel(`room-host:${roomId}`)
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'rooms', filter: `id=eq.${roomId}` },
-        async (payload) => {
-          const row = payload.new as { guest_id: string | null; status: string };
-          if (row.guest_id) {
-            const { data: gd } = await supabase
-              .from('profiles')
-              .select('username, avatar')
-              .eq('id', row.guest_id)
-              .single();
-            setGuestInfo({ name: gd?.username ?? 'Guest', avatar: gd?.avatar ?? '🎲' });
-            setGuestJoined(true);
-          }
-        }
+        () => { checkForGuest(); }
       )
-      .subscribe();
+      .subscribe((status) => {
+        log.info('Host subscription status:', status);
+      });
 
-    return () => { void supabase.removeChannel(ch); };
+    // 3. Fallback polling every 3 seconds
+    const poll = setInterval(checkForGuest, 3000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(poll);
+      void supabase.removeChannel(ch);
+    };
   }, [roomId, phase]);
 
   // Subscribe to room changes while waiting as guest

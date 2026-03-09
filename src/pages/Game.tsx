@@ -251,6 +251,7 @@ export function Game() {
           dice={state.dice}
           onSelectDie={handleSelectDie}
           canSelect={state.phase === 'selecting' && isMyTurn}
+          phase={state.phase}
         />
 
         <GameActions
