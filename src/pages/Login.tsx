@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect, type FormEvent } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -21,14 +21,20 @@ function ErrorBanner({ message }: { message: string }) {
 }
 
 export function Login() {
-  const { signIn, signInAnonymously } = useAuth();
+  const { sendMagicLink, signInAnonymously, session } = useAuth();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  // Sign-in form state
+  useEffect(() => {
+    if (session) navigate('/', { replace: true });
+  }, [session, navigate]);
+
+  // Magic link form state
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [uiState, setUiState] = useState<'form' | 'sent'>('form');
+  const [error, setError] = useState(searchParams.get('error') === 'invalid_link' ? 'That magic link is invalid or expired. Request a new one.' : '');
   const [loading, setLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   // Guest form state
   const [showGuestForm, setShowGuestForm] = useState(false);
@@ -37,19 +43,43 @@ export function Login() {
   const [guestError, setGuestError] = useState('');
   const [guestLoading, setGuestLoading] = useState(false);
 
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendCooldown]);
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    const { error } = await signIn(email, password);
+    const { error } = await sendMagicLink(email);
 
     if (error) {
-      setError(error.message);
+      const msg = error.message.toLowerCase().includes('rate limit')
+        ? 'Too many requests — please wait a minute before trying again.'
+        : error.message;
+      setError(msg);
+      setResendCooldown(60);
       setLoading(false);
     } else {
-      navigate('/');
+      setUiState('sent');
+      setResendCooldown(60);
+      setLoading(false);
     }
+  }
+
+  async function handleResend() {
+    if (resendCooldown > 0) return;
+    setLoading(true);
+    const { error } = await sendMagicLink(email);
+    if (error) {
+      setError(error.message);
+    } else {
+      setResendCooldown(60);
+    }
+    setLoading(false);
   }
 
   async function handleGuestSubmit(e: FormEvent) {
@@ -79,10 +109,47 @@ export function Login() {
     });
     if (profileError) {
       log.warn('Guest profile upsert failed:', profileError.message);
-      // Non-fatal — still playable with trigger defaults
     }
+  }
 
-    navigate('/');
+  if (uiState === 'sent') {
+    return (
+      <div className="min-h-screen bg-wood-dark flex items-center justify-center p-6">
+        <motion.div
+          className="bg-wood border border-wood-light rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl space-y-5"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+        >
+          <div className="text-5xl">📬</div>
+          <div>
+            <h2 className="font-cinzel text-gold font-bold text-xl mb-2">Check your inbox</h2>
+            <p className="font-cinzel text-parchment-dim text-sm leading-relaxed">
+              We sent a magic link to{' '}
+              <span className="text-parchment">{email}</span>. Click it to enter the tavern.
+            </p>
+          </div>
+
+          {error && <ErrorBanner message={error} />}
+
+          <Button
+            variant="secondary"
+            className="w-full"
+            onClick={handleResend}
+            disabled={resendCooldown > 0 || loading}
+          >
+            {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend Magic Link'}
+          </Button>
+
+          <button
+            type="button"
+            onClick={() => { setUiState('form'); setError(''); }}
+            className="w-full font-cinzel text-parchment-dim text-xs hover:text-parchment transition-colors"
+          >
+            Use a different email
+          </button>
+        </motion.div>
+      </div>
+    );
   }
 
   return (
@@ -114,7 +181,7 @@ export function Login() {
           </p>
         </div>
 
-        {/* Sign-in form */}
+        {/* Magic link form */}
         <form
           onSubmit={handleSubmit}
           className="bg-wood border border-wood-light rounded-2xl p-6 w-full space-y-4 shadow-2xl"
@@ -125,34 +192,17 @@ export function Login() {
 
           {error && <ErrorBanner message={error} />}
 
-          <div className="space-y-3">
-            <div>
-              <label className="font-cinzel text-parchment-dim text-xs block mb-1.5">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                autoComplete="email"
-                placeholder="your@email.com"
-                className="w-full bg-wood-darkest border border-wood-light rounded-lg px-4 py-2.5 text-parchment font-cinzel text-sm focus:outline-none focus:border-gold transition-colors placeholder:text-parchment-dim/40"
-              />
-            </div>
-
-            <div>
-              <label className="font-cinzel text-parchment-dim text-xs block mb-1.5">
-                Password
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                autoComplete="current-password"
-                placeholder="••••••••"
-                className="w-full bg-wood-darkest border border-wood-light rounded-lg px-4 py-2.5 text-parchment font-cinzel text-sm focus:outline-none focus:border-gold transition-colors placeholder:text-parchment-dim/40"
-              />
-            </div>
+          <div>
+            <label className="font-cinzel text-parchment-dim text-xs block mb-1.5">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              autoComplete="email"
+              placeholder="your@email.com"
+              className="w-full bg-wood-darkest border border-wood-light rounded-lg px-4 py-2.5 text-parchment font-cinzel text-sm focus:outline-none focus:border-gold transition-colors placeholder:text-parchment-dim/40"
+            />
           </div>
 
           <Button
@@ -162,8 +212,9 @@ export function Login() {
             className="w-full"
             disabled={loading}
           >
-            {loading ? 'Signing in…' : '⚔️ Sign In'}
+            {loading ? 'Sending…' : '✉️ Send Magic Link'}
           </Button>
+
         </form>
 
         {/* Divider */}
@@ -199,7 +250,7 @@ export function Login() {
               transition={{ duration: 0.22, ease: 'easeOut' }}
             >
               <h2 className="font-cinzel text-parchment font-semibold text-lg text-center">
-                Enter as Wanderer
+                Play as Guest
               </h2>
 
               {guestError && <ErrorBanner message={guestError} />}
@@ -241,21 +292,11 @@ export function Login() {
                 onClick={() => { setShowGuestForm(false); setGuestError(''); }}
                 className="w-full font-cinzel text-parchment-dim text-xs hover:text-parchment transition-colors"
               >
-                Never mind — Sign in instead
+                Never mind — use magic link instead
               </button>
             </motion.form>
           )}
         </AnimatePresence>
-
-        <p className="font-cinzel text-parchment-dim text-sm text-center">
-          New to the tavern?{' '}
-          <Link
-            to="/signup"
-            className="text-gold hover:text-gold-bright transition-colors underline underline-offset-2"
-          >
-            Create an account
-          </Link>
-        </p>
       </motion.div>
     </div>
   );

@@ -94,7 +94,7 @@ export function History() {
                 Create an account to save your match history across sessions.
               </p>
             </div>
-            <Button variant="primary" onClick={() => navigate('/signup')}>⚔️ Create Account</Button>
+            <Button variant="primary" onClick={() => navigate('/login')}>⚔️ Create Account</Button>
             <button
               onClick={() => navigate('/')}
               className="font-cinzel text-parchment-dim text-xs hover:text-parchment transition-colors"

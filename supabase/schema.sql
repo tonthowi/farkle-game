@@ -17,7 +17,7 @@ create table if not exists profiles (
     "bestScore": 0,
     "totalPointsScored": 0,
     "totalFarkles": 0,
-    "tokens": 500
+    "coins": 500
   }'::jsonb,
   created_at timestamptz not null default now()
 );
@@ -63,7 +63,7 @@ begin
       'Traveller'
     ),
     coalesce(new.raw_user_meta_data->>'avatar', '🎲'),
-    '{"gamesPlayed":0,"wins":0,"losses":0,"bestScore":0,"totalPointsScored":0,"totalFarkles":0,"tokens":500}'::jsonb
+    '{"gamesPlayed":0,"wins":0,"losses":0,"bestScore":0,"totalPointsScored":0,"totalFarkles":0,"coins":500}'::jsonb
   )
   on conflict (id) do nothing; -- app-side insert (with real username) takes precedence
   return new;
@@ -82,10 +82,14 @@ select
   u.id,
   coalesce(split_part(u.email, '@', 1), 'Traveller'),
   '🎲',
-  '{"gamesPlayed":0,"wins":0,"losses":0,"bestScore":0,"totalPointsScored":0,"totalFarkles":0,"tokens":500}'::jsonb
+  '{"gamesPlayed":0,"wins":0,"losses":0,"bestScore":0,"totalPointsScored":0,"totalFarkles":0,"coins":500}'::jsonb
 from auth.users u
 left join public.profiles p on p.id = u.id
 where p.id is null;
+
+-- ── Indexes ──────────────────────────────────────────────────
+-- Note: the starting coin balance (500) below must match COIN_CONFIG.STARTING_BALANCE
+-- in src/config/coins.ts. Update both if you change the default.
 
 -- ── Match History ────────────────────────────────────────────
 -- One row per completed game, per user
@@ -143,19 +147,41 @@ drop policy if exists "rooms_insert" on rooms;
 create policy "rooms_insert" on rooms for insert
   with check (auth.uid() = host_id);
 
--- Host or guest can update; unauthenticated guests can join empty rooms
+-- Host or guest can update; a new joiner can update an empty waiting room,
+-- but WITH CHECK ensures the resulting row has them as host or guest
+-- (prevents overwriting arbitrary room data without being a participant).
 drop policy if exists "rooms_update" on rooms;
 create policy "rooms_update" on rooms for update
   using (
     auth.uid() = host_id
     or auth.uid() = guest_id
     or (guest_id is null and status = 'waiting')
+  )
+  with check (
+    auth.uid() = host_id
+    or auth.uid() = guest_id
   );
 
 -- Host can delete (cancel/leave)
 drop policy if exists "rooms_delete" on rooms;
 create policy "rooms_delete" on rooms for delete
   using (auth.uid() = host_id);
+
+-- ── Indexes ──────────────────────────────────────────────────
+create index if not exists idx_rooms_code        on rooms(code);
+create index if not exists idx_rooms_host_id     on rooms(host_id);
+create index if not exists idx_rooms_status      on rooms(status);
+create index if not exists idx_history_user_id   on match_history(user_id);
+create index if not exists idx_history_created_at on match_history(created_at);
+
+-- ── Room cleanup ──────────────────────────────────────────────
+-- Delete finished rooms older than 1 hour, and stale waiting rooms older than 24 hours.
+-- Run this as a Supabase scheduled Edge Function or pg_cron job, e.g.:
+--   select cron.schedule('cleanup-rooms', '0 * * * *', $$
+--     delete from rooms where (status = 'finished' and updated_at < now() - interval '1 hour')
+--       or (status = 'waiting' and created_at < now() - interval '24 hours');
+--   $$);
+-- (Requires the pg_cron extension to be enabled in your Supabase project.)
 
 -- ── Realtime ─────────────────────────────────────────────────
 -- Enable postgres_changes events for the rooms table so hosts

@@ -3,10 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import type { Difficulty } from '../types/game';
 import { Button } from '../components/ui/Button';
-import { TokenBalance } from '../components/ui/TokenBalance';
 import { useProfile } from '../hooks/useProfile';
-import { useTokens } from '../hooks/useTokens';
-import { TOKEN_CONFIG } from '../config/tokens';
 
 interface SetupState {
   difficulty: Difficulty;
@@ -16,7 +13,6 @@ interface SetupState {
 export function Setup() {
   const navigate = useNavigate();
   const { profile } = useProfile();
-  const { balance } = useTokens();
 
   const [setup, setSetup] = useState<SetupState>({
     difficulty: 'medium',
@@ -60,7 +56,6 @@ export function Setup() {
         <h1 className="font-cinzel font-bold text-gold text-xl">
           vs Computer
         </h1>
-        <TokenBalance balance={balance} size="sm" />
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-5 max-w-md mx-auto w-full pb-24">
@@ -112,12 +107,6 @@ export function Setup() {
               </button>
             ))}
           </div>
-          <p className="font-cinzel text-xs text-center pt-1">
-            <span className="text-gold">+{TOKEN_CONFIG.VS_COMPUTER[setup.difficulty].win} tokens</span>
-            <span className="text-parchment-dim"> on win · </span>
-            <span className="text-danger-light">{TOKEN_CONFIG.VS_COMPUTER[setup.difficulty].loss} tokens</span>
-            <span className="text-parchment-dim"> on loss</span>
-          </p>
         </motion.div>
 
         {/* Target score */}

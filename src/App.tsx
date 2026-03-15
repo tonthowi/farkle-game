@@ -8,7 +8,8 @@ import { Lobby } from './pages/Lobby';
 import { Profile } from './pages/Profile';
 import { History } from './pages/History';
 import { Login } from './pages/Login';
-import { Signup } from './pages/Signup';
+import { AuthCallback } from './pages/AuthCallback';
+import { ProfileSetup } from './pages/ProfileSetup';
 import { useBgm } from './hooks/useBgm';
 import { BgmButton } from './components/ui/BgmButton';
 
@@ -22,7 +23,7 @@ function AppRoutes() {
       <Routes>
         {/* Public routes */}
         <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
 
         {/* Protected routes */}
         <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
@@ -31,6 +32,7 @@ function AppRoutes() {
         <Route path="/lobby" element={<ProtectedRoute><Lobby /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
+        <Route path="/profile-setup" element={<ProtectedRoute><ProfileSetup /></ProtectedRoute>} />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

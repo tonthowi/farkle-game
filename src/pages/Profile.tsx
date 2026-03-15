@@ -14,6 +14,7 @@ export function Profile() {
   const [editName, setEditName] = useState(profile.name);
   const [editAvatar, setEditAvatar] = useState(profile.avatar);
   const [saved, setSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
 
   // Sync edit fields once profile loads from Supabase
@@ -25,8 +26,11 @@ export function Profile() {
   }, [profileLoading]);
 
   async function handleSave() {
+    if (isSaving) return;
+    setIsSaving(true);
     setSaveError('');
     const { error } = await updateProfile({ name: editName || 'Traveller', avatar: editAvatar });
+    setIsSaving(false);
     if (error) {
       setSaveError(error);
     } else {
@@ -66,10 +70,10 @@ export function Profile() {
               </p>
             </div>
             <button
-              onClick={() => navigate('/signup')}
+              onClick={() => navigate('/login')}
               className="font-cinzel text-gold text-xs hover:text-gold-bright transition-colors whitespace-nowrap shrink-0 underline underline-offset-2"
             >
-              Sign Up →
+              Get Magic Link →
             </button>
           </motion.div>
         )}
@@ -113,8 +117,9 @@ export function Profile() {
             variant="primary"
             className="w-full"
             onClick={handleSave}
+            disabled={isSaving}
           >
-            {saved ? '✓ Saved!' : 'Save Changes'}
+            {isSaving ? 'Saving…' : saved ? '✓ Saved!' : 'Save Changes'}
           </Button>
         </motion.div>
       </div>

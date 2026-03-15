@@ -21,7 +21,12 @@ function easyStrategy(state: GameState): AIDecision {
 
   const diceLeftAfterLock = unlockedDice.length - selectedIds.length;
 
-  const shouldBank = totalIfBanked >= 300 || diceLeftAfterLock <= 2 || diceLeftAfterLock === 0;
+  // Hot dice: all dice scored — must roll again, banking is not possible here
+  if (diceLeftAfterLock === 0) {
+    return { action: 'select-and-roll', selectedDiceIds: selectedIds };
+  }
+
+  const shouldBank = totalIfBanked >= 300 || diceLeftAfterLock <= 2;
   return { action: shouldBank ? 'select-and-bank' : 'select-and-roll', selectedDiceIds: selectedIds };
 }
 
@@ -42,7 +47,7 @@ function mediumStrategy(state: GameState): AIDecision {
   const urgency = opponentScore >= state.targetScore * 0.8;
 
   const threshold = urgency ? 1000 : 600;
-  const shouldBank = (totalIfBanked >= threshold || diceLeftAfterLock <= 2) && !urgency;
+  const shouldBank = totalIfBanked >= threshold || diceLeftAfterLock <= 2;
 
   return { action: shouldBank ? 'select-and-bank' : 'select-and-roll', selectedDiceIds: selectedIds };
 }

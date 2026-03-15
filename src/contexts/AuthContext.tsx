@@ -14,11 +14,7 @@ interface AuthContextValue {
   user: User | null;
   loading: boolean;
   isGuest: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
-  signUp: (
-    email: string,
-    password: string
-  ) => Promise<{ error: AuthError | null; user: User | null; session: Session | null }>;
+  sendMagicLink: (email: string) => Promise<{ error: AuthError | null }>;
   signInAnonymously: () => Promise<{
     error: AuthError | null;
     user: User | null;
@@ -62,14 +58,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signIn = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const sendMagicLink = useCallback(async (email: string) => {
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+    });
     return { error };
-  }, []);
-
-  const signUp = useCallback(async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signUp({ email, password });
-    return { error, user: data.user, session: data.session };
   }, []);
 
   const signInAnonymously = useCallback(async () => {
@@ -90,8 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user: session?.user ?? null,
         loading,
         isGuest,
-        signIn,
-        signUp,
+        sendMagicLink,
         signInAnonymously,
         signOut,
       }}

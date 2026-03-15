@@ -2,10 +2,10 @@ import { useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '../components/ui/Button';
-import { TokenBalance } from '../components/ui/TokenBalance';
+import { CoinBalance } from '../components/ui/CoinBalance';
 import { useProfile } from '../hooks/useProfile';
 import { useAuth } from '../contexts/AuthContext';
-import { useTokens } from '../hooks/useTokens';
+import { useCoins } from '../hooks/useCoins';
 
 const PIP_POSITIONS: Record<number, [number, number][]> = {
   1: [[50, 50]],
@@ -32,7 +32,7 @@ export function Home() {
   const navigate = useNavigate();
   const { profile, profileLoading } = useProfile();
   const { signOut, isGuest } = useAuth();
-  const { balance, applyTopupGrants } = useTokens();
+  const { balance, applyTopupGrants } = useCoins();
 
   useEffect(() => {
     applyTopupGrants();
@@ -103,13 +103,13 @@ export function Home() {
               {profileLoading ? '' : `${profile.stats.wins}W · ${profile.stats.losses}L`}
             </p>
             {!isGuest && !profileLoading && (
-              <TokenBalance balance={balance} size="sm" />
+              <CoinBalance balance={balance} size="sm" />
             )}
           </div>
           <div className="ml-auto flex items-center gap-3 shrink-0">
             {isGuest ? (
               <Link
-                to="/signup"
+                to="/login"
                 className="text-gold text-xs font-cinzel hover:text-gold-bright transition-colors underline underline-offset-2 whitespace-nowrap"
               >
                 Create Account →

@@ -3,7 +3,7 @@ import type { GameState, NewGamePayload } from '../types/game';
 import { gameReducer } from '../game/engine';
 import { createDice } from '../game/dice';
 import { getAIDecision } from '../ai/strategies';
-import { ROLL_ANIMATION_MS, AI_MOVE_DELAY_MS } from '../game/constants';
+import { ROLL_ANIMATION_MS, AI_MOVE_DELAY_MS, AI_SELECT_DELAY_MS } from '../game/constants';
 
 function buildInitialState(payload: NewGamePayload): GameState {
   return {
@@ -46,13 +46,19 @@ export function useGame(initialPayload?: NewGamePayload, initialState?: GameStat
           }))
   );
 
+  // Always-current state ref — lets AI callbacks read fresh dice/score without
+  // adding them to the effect deps (which would re-trigger on every SELECT_DIE).
+  const stateRef = useRef(state);
+  stateRef.current = state;
+
   const aiTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const aiInnerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const aiRollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearAiTimer = () => {
-    if (aiTimerRef.current) {
-      clearTimeout(aiTimerRef.current);
-      aiTimerRef.current = null;
-    }
+    if (aiTimerRef.current) { clearTimeout(aiTimerRef.current); aiTimerRef.current = null; }
+    if (aiInnerTimerRef.current) { clearTimeout(aiInnerTimerRef.current); aiInnerTimerRef.current = null; }
+    if (aiRollTimerRef.current) { clearTimeout(aiRollTimerRef.current); aiRollTimerRef.current = null; }
   };
 
   const triggerRoll = useCallback(() => {
@@ -109,19 +115,22 @@ export function useGame(initialPayload?: NewGamePayload, initialState?: GameStat
 
     if (state.phase === 'selecting') {
       aiTimerRef.current = setTimeout(() => {
-        const decision = getAIDecision(state, state.difficulty ?? 'medium');
+        // Read from ref so we get fresh dice/turnScore without them being deps
+        const snap = stateRef.current;
+        const difficulty = snap.difficulty ?? 'medium';
+        const decision = getAIDecision(snap, difficulty);
 
         // Select chosen dice one by one
         decision.selectedDiceIds.forEach((id) => dispatch({ type: 'SELECT_DIE', dieId: id }));
 
-        setTimeout(() => {
+        aiInnerTimerRef.current = setTimeout(() => {
           if (decision.action === 'select-and-bank') {
             dispatch({ type: 'BANK' });
           } else {
             dispatch({ type: 'ROLL_MORE' });
             setTimeout(() => dispatch({ type: 'ROLL_COMPLETE' }), ROLL_ANIMATION_MS);
           }
-        }, 700);
+        }, AI_SELECT_DELAY_MS);
       }, AI_MOVE_DELAY_MS);
     }
 

@@ -5,22 +5,25 @@ import { supabase } from '../lib/supabase';
 import { log } from '../lib/logger';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
-import { useTokens } from '../hooks/useTokens';
-import { TOKEN_CONFIG } from '../config/tokens';
+import { useCoins } from '../hooks/useCoins';
+import { COIN_CONFIG } from '../config/coins';
 import { createDice } from '../game/dice';
 import type { GameState } from '../types/game';
 
 type LobbyPhase = 'choose' | 'creating' | 'waiting-host' | 'joining' | 'waiting-guest';
 
 function generateCode(): string {
-  return Math.random().toString(36).substring(2, 8).toUpperCase();
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  const bytes = new Uint8Array(6);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => chars[b % chars.length]).join('');
 }
 
 export function Lobby() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const { user, isGuest } = useAuth();
-  const { canAfford, applyDelta } = useTokens();
+  const { canAfford, applyDelta } = useCoins();
 
   const initialAction = params.get('action') as 'create' | 'join' | null;
 
@@ -45,14 +48,17 @@ export function Lobby() {
   const doCreateRoom = useCallback(async () => {
     if (!user) return;
     setCreateError('');
-    if (!isGuest && !canAfford(TOKEN_CONFIG.ONLINE_ENTRY_FEE)) {
-      setCreateError('Not enough tokens to create a room (5 tokens required).');
+    if (!isGuest && !canAfford(COIN_CONFIG.ONLINE_ENTRY_FEE)) {
+      setCreateError('Not enough coins to create a room (5 coins required).');
       return;
     }
     setPhase('creating');
 
     const tryInsert = async (code: string) =>
       supabase.from('rooms').insert({ code, host_id: user.id }).select().single();
+
+    // Deduct coins before insert; refund immediately if insert fails
+    if (!isGuest) applyDelta(-COIN_CONFIG.ONLINE_ENTRY_FEE);
 
     let data = null;
     let finalCode = generateCode();
@@ -62,6 +68,7 @@ export function Lobby() {
       finalCode = generateCode();
       const { data: d2, error: e2 } = await tryInsert(finalCode);
       if (e2 || !d2) {
+        if (!isGuest) applyDelta(+COIN_CONFIG.ONLINE_ENTRY_FEE); // refund
         setCreateError('Could not create room. Please try again.');
         setPhase('choose');
         return;
@@ -73,7 +80,6 @@ export function Lobby() {
 
     setRoomCode(finalCode);
     setRoomId(data.id);
-    if (!isGuest) applyDelta(-TOKEN_CONFIG.ONLINE_ENTRY_FEE);
     setPhase('waiting-host');
   }, [user, isGuest, canAfford, applyDelta]);
 
@@ -181,8 +187,8 @@ export function Lobby() {
   async function handleJoin() {
     if (!user || !joinInput.trim()) return;
     setJoinError('');
-    if (!isGuest && !canAfford(TOKEN_CONFIG.ONLINE_ENTRY_FEE)) {
-      setJoinError('Not enough tokens to join a room (5 tokens required).');
+    if (!isGuest && !canAfford(COIN_CONFIG.ONLINE_ENTRY_FEE)) {
+      setJoinError('Not enough coins to join a room (5 coins required).');
       return;
     }
 
@@ -203,19 +209,22 @@ export function Lobby() {
       return;
     }
 
+    // Deduct coins before update; refund immediately if update fails
+    if (!isGuest) applyDelta(-COIN_CONFIG.ONLINE_ENTRY_FEE);
+
     const { error: upErr } = await supabase
       .from('rooms')
       .update({ guest_id: user.id, status: 'ready' })
       .eq('id', data.id);
 
     if (upErr) {
+      if (!isGuest) applyDelta(+COIN_CONFIG.ONLINE_ENTRY_FEE); // refund
       setJoinError('Could not join room. It may already be full.');
       return;
     }
 
     setRoomId(data.id);
     setRoomCode(data.code);
-    if (!isGuest) applyDelta(-TOKEN_CONFIG.ONLINE_ENTRY_FEE);
     setPhase('waiting-guest');
   }
 
@@ -288,6 +297,7 @@ export function Lobby() {
     if (roomId) {
       await supabase.from('rooms').delete().eq('id', roomId);
     }
+    if (!isGuest) applyDelta(+COIN_CONFIG.ONLINE_ENTRY_FEE);
     navigate('/');
   }
 
@@ -298,6 +308,7 @@ export function Lobby() {
         .update({ guest_id: null, status: 'waiting' })
         .eq('id', roomId);
     }
+    if (!isGuest) applyDelta(+COIN_CONFIG.ONLINE_ENTRY_FEE);
     navigate('/');
   }
 

@@ -18,34 +18,47 @@ import { FarkleAlert } from '../components/game/FarkleAlert';
 import { Modal } from '../components/ui/Modal';
 import { Button } from '../components/ui/Button';
 import { formatScore } from '../utils/format';
-import { useTokens } from '../hooks/useTokens';
-import { TOKEN_CONFIG } from '../config/tokens';
+import { useCoins } from '../hooks/useCoins';
+import { COIN_CONFIG } from '../config/coins';
+
+/** Typed shape of navigation state passed to /game */
+interface GameLocationState {
+  mode: string;
+  roomCode?: string;
+  [key: string]: unknown;
+}
 
 export function Game() {
   const navigate = useNavigate();
   const location = useLocation();
-  const locationState = location.state as any;
+  const locationState = location.state as GameLocationState | null;
   const { user } = useAuth();
   const { updateStats } = useProfile();
   const { recordMatch } = useHistory();
-  const { applyDelta } = useTokens();
+  const { applyDelta } = useCoins();
 
   const rewardAppliedRef = useRef(false);
-  const [tokenRewardDelta, setTokenRewardDelta] = useState<number | null>(null);
+  const [coinRewardDelta, setCoinRewardDelta] = useState<number | null>(null);
+
+  // Guard: /game requires valid navigation state
+  if (!locationState?.mode) {
+    navigate('/', { replace: true });
+    return null;
+  }
 
   // Detect online multiplayer
-  const isOnlineMode = locationState?.mode === 'online-multiplayer';
-  const roomCode = isOnlineMode ? (locationState?.roomCode as string | undefined) : undefined;
+  const isOnlineMode = locationState.mode === 'online-multiplayer';
+  const roomCode = isOnlineMode ? locationState.roomCode : undefined;
 
   // For online mode, locationState IS the full GameState.
   // For other modes, build from NewGamePayload.
   const onlineInitialState: GameState | undefined = isOnlineMode
-    ? (locationState as GameState)
+    ? (locationState as unknown as GameState)
     : undefined;
 
   const offlinePayload: NewGamePayload = isOnlineMode
     ? { mode: 'vs-computer', players: [], targetScore: 10000 } // unused
-    : (locationState as NewGamePayload ?? {
+    : (locationState as unknown as NewGamePayload ?? {
         mode: 'vs-computer',
         difficulty: 'medium',
         players: [
@@ -78,7 +91,7 @@ export function Game() {
   // Reset reward tracking when a new game starts
   useEffect(() => {
     rewardAppliedRef.current = false;
-    setTokenRewardDelta(null);
+    setCoinRewardDelta(null);
   }, [state.startTime]);
 
   // ── Realtime Broadcast channel ───────────────────────────────
@@ -86,6 +99,8 @@ export function Game() {
   // Set to true before any local dispatch so we know to broadcast after state updates.
   const pendingBroadcastRef = useRef(false);
   const [isConnected, setIsConnected] = useState(true);
+  // Track consecutive channel errors; after 3 failures, navigate home.
+  const channelErrorCountRef = useRef(0);
 
   useEffect(() => {
     if (!isOnlineMode || !roomCode) return;
@@ -100,11 +115,17 @@ export function Game() {
 
     ch.subscribe((status, err) => {
       if (status === 'SUBSCRIBED') {
+        channelErrorCountRef.current = 0;
         setIsConnected(true);
         log.info(`Room channel ${roomCode} connected`);
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        channelErrorCountRef.current += 1;
         setIsConnected(false);
-        log.error(`Channel error [${status}]`, err);
+        log.error(`Channel error [${status}] (${channelErrorCountRef.current}/3)`, err);
+        if (channelErrorCountRef.current >= 3) {
+          log.warn('Too many channel errors — returning to home');
+          navigate('/', { replace: true });
+        }
       } else if (status === 'CLOSED') {
         setIsConnected(false);
         log.warn('Channel closed');
@@ -122,7 +143,11 @@ export function Game() {
   useEffect(() => {
     if (!isOnlineMode || !channelRef.current) return;
     if (!pendingBroadcastRef.current) return;
-    if (state.phase === 'rolling') return;
+    if (state.phase === 'rolling') {
+      // Don't broadcast intermediate rolling state — wait for ROLL_COMPLETE
+      pendingBroadcastRef.current = false;
+      return;
+    }
     pendingBroadcastRef.current = false;
     void channelRef.current.send({
       type: 'broadcast',
@@ -193,7 +218,7 @@ export function Game() {
       targetScore: state.targetScore,
     };
     if (!user?.is_anonymous) {
-      recordMatch(record);
+      recordMatch(record).catch((err) => log.warn('Failed to save match record:', err));
     }
 
     if (humanPlayer) {
@@ -206,18 +231,12 @@ export function Game() {
       }));
     }
 
-    if (!rewardAppliedRef.current && !user?.is_anonymous && state.mode !== 'local-multiplayer') {
+    if (!rewardAppliedRef.current && !user?.is_anonymous && state.mode === 'online-multiplayer') {
       rewardAppliedRef.current = true;
-      let delta = 0;
-      if (state.mode === 'vs-computer' && state.difficulty) {
-        const r = TOKEN_CONFIG.VS_COMPUTER[state.difficulty];
-        delta = humanWon ? r.win : r.loss;
-      } else if (state.mode === 'online-multiplayer') {
-        delta = humanWon ? TOKEN_CONFIG.ONLINE_MULTIPLAYER.win : TOKEN_CONFIG.ONLINE_MULTIPLAYER.loss;
-      }
+      const delta = humanWon ? COIN_CONFIG.ONLINE_MULTIPLAYER.win : COIN_CONFIG.ONLINE_MULTIPLAYER.loss;
       if (delta !== 0) {
         applyDelta(delta);
-        setTokenRewardDelta(delta);
+        setCoinRewardDelta(delta);
       }
     }
   }, [state.phase]);
@@ -368,9 +387,9 @@ export function Game() {
                 ))}
               </div>
 
-              {tokenRewardDelta !== null && (
-                <p className={`font-cinzel text-sm font-bold mb-4 ${tokenRewardDelta > 0 ? 'text-gold' : 'text-danger-light'}`}>
-                  {tokenRewardDelta > 0 ? `+${tokenRewardDelta}` : tokenRewardDelta} tokens
+              {coinRewardDelta !== null && (
+                <p className={`font-cinzel text-sm font-bold mb-4 ${coinRewardDelta > 0 ? 'text-gold' : 'text-danger-light'}`}>
+                  {coinRewardDelta > 0 ? `+${coinRewardDelta}` : coinRewardDelta} coins
                 </p>
               )}
 
