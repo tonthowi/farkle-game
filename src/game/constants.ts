@@ -4,3 +4,4 @@ export const NUM_DICE = 6;
 export const AI_MOVE_DELAY_MS = 1200;
 export const ROLL_ANIMATION_MS = 700;
 export const AI_SELECT_DELAY_MS = 700;
+export const TURN_TIME_LIMIT_MS = 30_000;

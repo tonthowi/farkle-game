@@ -5,8 +5,6 @@ import { supabase } from '../lib/supabase';
 import { log } from '../lib/logger';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
-import { useCoins } from '../hooks/useCoins';
-import { COIN_CONFIG } from '../config/coins';
 import { createDice } from '../game/dice';
 import type { GameState } from '../types/game';
 
@@ -22,8 +20,7 @@ function generateCode(): string {
 export function Lobby() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const { user, isGuest } = useAuth();
-  const { canAfford, applyDelta } = useCoins();
+  const { user } = useAuth();
 
   const initialAction = params.get('action') as 'create' | 'join' | null;
 
@@ -48,17 +45,10 @@ export function Lobby() {
   const doCreateRoom = useCallback(async () => {
     if (!user) return;
     setCreateError('');
-    if (!isGuest && !canAfford(COIN_CONFIG.ONLINE_ENTRY_FEE)) {
-      setCreateError('Not enough coins to create a room (5 coins required).');
-      return;
-    }
     setPhase('creating');
 
     const tryInsert = async (code: string) =>
       supabase.from('rooms').insert({ code, host_id: user.id }).select().single();
-
-    // Deduct coins before insert; refund immediately if insert fails
-    if (!isGuest) applyDelta(-COIN_CONFIG.ONLINE_ENTRY_FEE);
 
     let data = null;
     let finalCode = generateCode();
@@ -68,7 +58,6 @@ export function Lobby() {
       finalCode = generateCode();
       const { data: d2, error: e2 } = await tryInsert(finalCode);
       if (e2 || !d2) {
-        if (!isGuest) applyDelta(+COIN_CONFIG.ONLINE_ENTRY_FEE); // refund
         setCreateError('Could not create room. Please try again.');
         setPhase('choose');
         return;
@@ -81,7 +70,7 @@ export function Lobby() {
     setRoomCode(finalCode);
     setRoomId(data.id);
     setPhase('waiting-host');
-  }, [user, isGuest, canAfford, applyDelta]);
+  }, [user]);
 
   // Auto-create if URL param is 'create'
   useEffect(() => {
@@ -187,10 +176,6 @@ export function Lobby() {
   async function handleJoin() {
     if (!user || !joinInput.trim()) return;
     setJoinError('');
-    if (!isGuest && !canAfford(COIN_CONFIG.ONLINE_ENTRY_FEE)) {
-      setJoinError('Not enough coins to join a room (5 coins required).');
-      return;
-    }
 
     const code = joinInput.trim().toUpperCase();
     const { data, error } = await supabase
@@ -209,16 +194,12 @@ export function Lobby() {
       return;
     }
 
-    // Deduct coins before update; refund immediately if update fails
-    if (!isGuest) applyDelta(-COIN_CONFIG.ONLINE_ENTRY_FEE);
-
     const { error: upErr } = await supabase
       .from('rooms')
       .update({ guest_id: user.id, status: 'ready' })
       .eq('id', data.id);
 
     if (upErr) {
-      if (!isGuest) applyDelta(+COIN_CONFIG.ONLINE_ENTRY_FEE); // refund
       setJoinError('Could not join room. It may already be full.');
       return;
     }
@@ -275,6 +256,7 @@ export function Lobby() {
       winner: null,
       startTime: Date.now(),
       showPassDevice: false,
+      turnDeadline: null,
       roomCode,
     };
 
@@ -297,7 +279,6 @@ export function Lobby() {
     if (roomId) {
       await supabase.from('rooms').delete().eq('id', roomId);
     }
-    if (!isGuest) applyDelta(+COIN_CONFIG.ONLINE_ENTRY_FEE);
     navigate('/');
   }
 
@@ -308,7 +289,6 @@ export function Lobby() {
         .update({ guest_id: null, status: 'waiting' })
         .eq('id', roomId);
     }
-    if (!isGuest) applyDelta(+COIN_CONFIG.ONLINE_ENTRY_FEE);
     navigate('/');
   }
 

@@ -26,6 +26,7 @@ function buildInitialState(payload: NewGamePayload): GameState {
     winner: null,
     startTime: Date.now(),
     showPassDevice: false,
+    turnDeadline: null,
   };
 }
 

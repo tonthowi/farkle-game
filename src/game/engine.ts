@@ -7,6 +7,7 @@ import {
   createDice,
 } from './dice';
 import { hasScoringDice, selectionScore, calculateScore } from './scoring';
+import { TURN_TIME_LIMIT_MS } from './constants';
 
 export function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
@@ -48,9 +49,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const unlockedValues = unlockedDice.map((d) => d.value);
 
       if (!hasScoringDice(unlockedValues)) {
-        return { ...state, phase: 'farkled', dice: clearedDice };
+        return { ...state, phase: 'farkled', dice: clearedDice, turnDeadline: null };
       }
-      return { ...state, phase: 'selecting', dice: clearedDice, selectedScore: 0 };
+      const deadline = state.mode === 'online-multiplayer'
+        ? Date.now() + TURN_TIME_LIMIT_MS
+        : null;
+      return { ...state, phase: 'selecting', dice: clearedDice, selectedScore: 0, turnDeadline: deadline };
     }
 
     case 'SELECT_DIE': {
@@ -96,6 +100,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         turnScore: 0,
         selectedScore: 0,
         rollCount: 0,
+        turnDeadline: null,
         showPassDevice: state.mode === 'local-multiplayer',
       };
     }
@@ -111,13 +116,14 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         turnScore: 0,
         selectedScore: 0,
         rollCount: 0,
+        turnDeadline: null,
         showPassDevice: state.mode === 'local-multiplayer',
       };
     }
 
     case 'CONFIRM_HOT_DICE': {
       if (state.phase !== 'hot-dice') return state;
-      return { ...state, phase: 'idle', dice: createDice(), selectedScore: 0 };
+      return { ...state, phase: 'idle', dice: createDice(), selectedScore: 0, turnDeadline: null };
     }
 
     case 'CONFIRM_PASS': {
@@ -149,6 +155,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         winner: null,
         startTime: Date.now(),
         showPassDevice: false,
+        turnDeadline: null,
       };
     }
 

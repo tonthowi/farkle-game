@@ -47,6 +47,8 @@ export interface GameState {
   showPassDevice: boolean;
   /** Join code — set only for online-multiplayer games */
   roomCode?: string;
+  /** Unix timestamp (ms) when the current selecting phase expires; null = no timer */
+  turnDeadline: number | null;
 }
 
 export interface ScoreResult {

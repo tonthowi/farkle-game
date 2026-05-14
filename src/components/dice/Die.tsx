@@ -123,6 +123,12 @@ export function Die({ die, onClick, disabled }: DieProps) {
     wasRolling.current = die.isRolling;
   }, [die.isRolling, die.value]);
 
+  const ariaLabel = die.isLocked
+    ? `Die showing ${die.value}, locked`
+    : die.isSelected
+    ? `Die showing ${die.value}, selected`
+    : `Die showing ${die.value}`;
+
   return (
     // Outer wrapper: perspective context + click target
     <div
@@ -133,6 +139,9 @@ export function Die({ die, onClick, disabled }: DieProps) {
       )}
       style={{ width: 64, height: 64, perspective: '600px' }}
       onClick={isClickable ? onClick : undefined}
+      role={isClickable ? 'button' : undefined}
+      aria-label={ariaLabel}
+      aria-pressed={die.isSelected && !die.isLocked ? true : undefined}
     >
       {/* 3D cube — Framer Motion drives rotateX / rotateY */}
       <motion.div

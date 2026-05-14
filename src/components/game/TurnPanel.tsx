@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { GameState } from '../../types/game';
 import { formatScore } from '../../utils/format';
@@ -9,6 +10,21 @@ interface TurnPanelProps {
 
 export function TurnPanel({ state }: TurnPanelProps) {
   const { turnScore, dice } = state;
+
+  const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!state.turnDeadline || state.phase !== 'selecting') {
+      setSecondsLeft(null);
+      return;
+    }
+    const update = () => {
+      setSecondsLeft(Math.max(0, Math.ceil((state.turnDeadline! - Date.now()) / 1000)));
+    };
+    update();
+    const interval = setInterval(update, 500);
+    return () => clearInterval(interval);
+  }, [state.turnDeadline, state.phase]);
 
   const selectedDice = dice.filter((d) => d.isSelected);
   const selectionResult = selectedDice.length > 0
@@ -87,11 +103,20 @@ export function TurnPanel({ state }: TurnPanelProps) {
 
       </div>
 
-      {/* Roll counter — always present footer */}
-      <div className="text-right mt-1.5">
+      {/* Footer: roll counter + optional turn timer */}
+      <div className="flex items-center justify-between mt-1.5">
         <span className="text-parchment-dim text-[10px] font-cinzel">
           Roll #{state.rollCount}
         </span>
+        {secondsLeft !== null && (
+          <span
+            className={`font-cinzel text-[10px] font-bold tabular-nums ${
+              secondsLeft <= 5 ? 'text-danger animate-pulse' : 'text-gold'
+            }`}
+          >
+            ⏱ {secondsLeft}s
+          </span>
+        )}
       </div>
     </div>
   );
