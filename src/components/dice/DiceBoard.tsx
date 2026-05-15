@@ -14,10 +14,29 @@ export function DiceBoard({ dice, onSelectDie, canSelect, phase }: DiceBoardProp
 
   return (
     <div className="flex flex-col items-center gap-4">
-      {/* Felt table surface */}
-      <div className="bg-felt rounded-2xl border border-felt-light p-6 shadow-inner w-full max-w-sm min-h-[160px]">
+      {/* Elliptical casino felt table */}
+      <div
+        className="w-full max-w-sm min-h-[160px] relative"
+        style={{
+          borderRadius: '50% / 16%',
+          background: 'radial-gradient(ellipse at 50% 35%, #265a42 0%, #1c4632 35%, #143425 75%, #0a1a12 100%)',
+          border: '1px solid #7a5a1f',
+          boxShadow: 'inset 0 0 90px rgba(0,0,0,0.55), inset 0 2px 0 rgba(232,195,116,0.18), 0 12px 48px rgba(0,0,0,0.6)',
+          padding: '34px 60px 44px',
+        }}
+      >
+        {/* Gold inner rim */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 4,
+            borderRadius: 'inherit',
+            border: '1px solid rgba(201,153,74,0.15)',
+            pointerEvents: 'none',
+          }}
+        />
+
         {isIdle ? (
-          /* Empty table — shown before the player has rolled */
           <div className="flex flex-col items-center justify-center py-4 gap-2 opacity-50">
             <span className="text-3xl">🎲</span>
             <p className="font-cinzel text-parchment-dim text-sm tracking-wider text-center">
@@ -48,7 +67,8 @@ export function DiceBoard({ dice, onSelectDie, canSelect, phase }: DiceBoardProp
         )}
 
         {/* Table label */}
-        <p className="text-center text-parchment-dim text-xs font-cinzel mt-4 tracking-widest opacity-50">
+        <p className="text-center font-cinzel mt-4 tracking-widest opacity-40"
+          style={{ fontSize: 10, color: '#e8c374', letterSpacing: '0.3em' }}>
           ⚜ TAVERN TABLE ⚜
         </p>
       </div>

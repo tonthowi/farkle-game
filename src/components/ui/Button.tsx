@@ -2,7 +2,7 @@ import React from 'react';
 import { cn } from '../../utils/cn';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'gold' | 'link';
   size?: 'sm' | 'md' | 'lg';
 }
 
@@ -13,20 +13,54 @@ export function Button({
   children,
   ...props
 }: ButtonProps) {
-  const base = 'font-cinzel font-semibold rounded-lg border transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95';
+  // gold and link map to CSS classes directly
+  if (variant === 'gold') {
+    return (
+      <button className={cn('btn-gold', className)} {...props}>
+        {children}
+      </button>
+    );
+  }
 
-  const variants = {
-    primary: 'bg-gold text-wood-dark border-gold-bright hover:bg-gold-bright shadow-lg hover:shadow-gold/30',
-    secondary: 'bg-wood text-parchment border-wood-light hover:bg-wood-light hover:border-parchment-dim',
-    danger: 'bg-danger text-white border-danger-light hover:bg-danger-light',
-    ghost: 'bg-transparent text-parchment-dim border-transparent hover:text-parchment hover:bg-wood/50',
+  if (variant === 'link') {
+    return (
+      <button className={cn('btn-link', className)} {...props}>
+        {children}
+      </button>
+    );
+  }
+
+  // ghost maps to btn-ghost CSS class
+  if (variant === 'ghost') {
+    return (
+      <button className={cn('btn-ghost', className)} {...props}>
+        {children}
+      </button>
+    );
+  }
+
+  // primary → btn-gold, secondary → btn-ghost, danger → own styles
+  const base = 'font-cinzel font-semibold rounded-sm border transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 uppercase tracking-widest inline-flex items-center justify-center gap-2';
+
+  const variants: Record<string, string> = {
+    primary: 'btn-gold',
+    secondary: 'btn-ghost',
+    danger: 'bg-gradient-to-b from-[#c84545] to-[#5a1818] border-[#3a0808] text-parchment-bright hover:brightness-110',
   };
 
-  const sizes = {
-    sm: 'px-3 py-1.5 text-sm',
-    md: 'px-5 py-2.5 text-base',
-    lg: 'px-8 py-3.5 text-lg',
+  const sizes: Record<string, string> = {
+    sm: 'px-3 py-2 text-xs',
+    md: 'px-5 py-3 text-sm',
+    lg: 'px-7 py-4 text-sm',
   };
+
+  if (variant === 'primary' || variant === 'secondary') {
+    return (
+      <button className={cn(variants[variant], className)} {...props}>
+        {children}
+      </button>
+    );
+  }
 
   return (
     <button

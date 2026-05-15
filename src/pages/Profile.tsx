@@ -81,7 +81,7 @@ export function Profile() {
           </div>
 
           {saveError && (
-            <p className="font-cinzel text-danger-light text-xs text-center bg-danger-dark/30 border border-danger rounded-lg px-3 py-2">
+            <p className="font-cinzel text-danger-bright text-xs text-center bg-danger/30 border border-danger rounded-lg px-3 py-2">
               {saveError}
             </p>
           )}

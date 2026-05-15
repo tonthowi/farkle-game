@@ -23,6 +23,11 @@ export function useGameResult(
     resultAppliedRef.current = false;
   }, [state.startTime]);
 
+  // Fires exactly once per game when phase reaches 'game-over'.
+  // Only state.phase is in the dep array intentionally: including state, user,
+  // updateStats, or recordMatch would re-fire on every parent re-render after
+  // game-over. The resultAppliedRef sentinel prevents double-execution, and the
+  // closure captures all values at the moment the phase changes — no stale data risk.
   useEffect(() => {
     if (state.phase !== 'game-over' || state.winner === null) return;
     if (resultAppliedRef.current) return;

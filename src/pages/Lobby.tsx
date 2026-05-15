@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { log } from '../lib/logger';
 import { useAuth } from '../contexts/AuthContext';
-import { Button } from '../components/ui/Button';
+import { BrandMark } from '../components/ui/BrandMark';
 import { createDice } from '../game/dice';
 import type { GameState } from '../types/game';
 
@@ -303,152 +303,144 @@ export function Lobby() {
 
   if (phase === 'choose') {
     return (
-      <div className="min-h-screen bg-wood-dark flex flex-col items-center justify-center p-6">
-        <button
-          onClick={() => navigate('/')}
-          className="absolute top-4 left-4 text-parchment-dim hover:text-gold font-cinzel text-sm transition-colors"
-        >
-          ‹ Back
-        </button>
+      <div className="bg-oak min-h-screen flex flex-col" style={{ position: 'relative' }}>
+        <div className="candle-glow" />
+        <div className="flex items-center justify-between p-4 relative" style={{ borderBottom: '1px solid #2b2118' }}>
+          <button className="btn-link" onClick={() => navigate('/')}>‹ Back</button>
+          <BrandMark small />
+          <div className="w-12" />
+        </div>
 
+        <div className="flex-1 flex items-center justify-center p-6">
         <motion.div
           className="w-full max-w-sm flex flex-col gap-6"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
           <div className="text-center">
-            <div className="text-5xl mb-2">🏰</div>
-            <h1 className="font-cinzel font-black text-gold text-3xl tracking-wider">Online Play</h1>
+            <div style={{ fontSize: 11, color: '#7a6a4b', letterSpacing: '0.36em', fontFamily: 'Cinzel', textTransform: 'uppercase', marginBottom: 8 }}>✦ Online Play ✦</div>
             <p className="font-cinzel text-parchment-dim text-sm mt-1">
               Challenge a friend across any device
             </p>
           </div>
 
           {createError && (
-            <p className="font-cinzel text-danger-light text-xs text-center bg-danger-dark/30 border border-danger rounded-lg px-3 py-2">
+            <p className="font-cinzel text-xs text-center panel px-3 py-2" style={{ color: '#ff9a9a', borderColor: '#b13838' }}>
               {createError}
             </p>
           )}
 
           <div className="flex flex-col gap-3">
-            <Button variant="primary" size="lg" className="w-full" onClick={doCreateRoom}>
-              🏰 Create Room
-            </Button>
-            <Button variant="secondary" size="lg" className="w-full" onClick={() => setPhase('joining')}>
-              🔗 Join Room
-            </Button>
+            <button className="btn-gold w-full" onClick={doCreateRoom}>🏰 Open a Private Table</button>
+            <button className="btn-ghost w-full" onClick={() => setPhase('joining')}>🔗 Join with a Code</button>
           </div>
         </motion.div>
+        </div>
       </div>
     );
   }
 
   if (phase === 'creating') {
     return (
-      <div className="min-h-screen bg-wood-dark flex items-center justify-center">
-        <motion.div
-          className="text-center"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-        >
-          <div className="text-5xl mb-4 animate-pulse">🎲</div>
-          <p className="font-cinzel text-parchment-dim">Creating room…</p>
-        </motion.div>
+      <div className="bg-oak min-h-screen flex flex-col" style={{ position: 'relative' }}>
+        <div className="candle-glow" />
+        <div className="flex items-center justify-between p-4 relative" style={{ borderBottom: '1px solid #2b2118' }}>
+          <BrandMark small />
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <motion.div className="text-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <div className="text-5xl mb-4 animate-pulse">🎲</div>
+            <p className="font-cinzel text-parchment-dim" style={{ letterSpacing: '0.1em' }}>Preparing the table…</p>
+          </motion.div>
+        </div>
       </div>
     );
   }
 
   if (phase === 'waiting-host') {
     return (
-      <div className="min-h-screen bg-wood-dark flex flex-col items-center justify-center p-6">
+      <div className="bg-oak min-h-screen flex flex-col" style={{ position: 'relative' }}>
+        <div className="candle-glow" />
+        <div className="flex items-center justify-between p-4 relative" style={{ borderBottom: '1px solid #2b2118' }}>
+          <button className="btn-link" onClick={handleCancelHost}>‹ Cancel</button>
+          <BrandMark small />
+          <div className="w-16" />
+        </div>
+
+        <div className="flex-1 flex items-center justify-center p-6">
         <motion.div
-          className="w-full max-w-sm flex flex-col gap-5"
+          className="w-full flex flex-col gap-5"
+          style={{ maxWidth: 380 }}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <div className="text-center">
-            <div className="text-5xl mb-2">🏰</div>
-            <h1 className="font-cinzel font-black text-gold text-2xl">Room Created</h1>
-            <p className="font-cinzel text-parchment-dim text-sm mt-1">
-              Share this code with your opponent
-            </p>
-          </div>
-
-          {/* Room code display */}
-          <div className="bg-wood border border-wood-light rounded-xl p-6 text-center">
-            <p className="font-cinzel text-parchment-dim text-xs uppercase tracking-widest mb-2">Join Code</p>
-            <p className="font-cinzel font-black text-gold text-5xl tracking-[0.25em] mb-4">
+          {/* "Seal of the Table" room code panel */}
+          <div className="panel text-center" style={{ padding: '28px 24px' }}>
+            <div className="font-cinzel" style={{ fontSize: 10, color: '#7a6a4b', letterSpacing: '0.3em', textTransform: 'uppercase', marginBottom: 16 }}>
+              ✦ Seal of the Table ✦
+            </div>
+            <div className="font-cinzel" style={{ fontSize: 42, fontWeight: 900, color: '#f3d989', letterSpacing: '0.25em', marginBottom: 16, textShadow: '0 0 20px rgba(243,217,137,0.3)' }}>
               {roomCode}
-            </p>
-            <button
-              onClick={handleCopy}
-              className="font-cinzel text-parchment-dim text-xs hover:text-gold transition-colors"
-            >
+            </div>
+            <button className="btn-link" onClick={handleCopy}>
               {copied ? '✓ Copied!' : '📋 Copy code'}
             </button>
           </div>
 
           {/* Guest status */}
-          <div className="bg-wood border border-wood-light rounded-xl p-4 text-center">
+          <div className="panel p-4 text-center">
             {guestJoined && guestInfo ? (
               <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
                 <p className="text-3xl mb-1">{guestInfo.avatar}</p>
                 <p className="font-cinzel text-parchment font-semibold">{guestInfo.name}</p>
-                <p className="font-cinzel text-parchment-dim text-xs">has joined the room!</p>
+                <p className="font-cinzel text-parchment-dim text-xs">has entered the tavern!</p>
               </motion.div>
             ) : (
               <div className="flex items-center justify-center gap-2">
-                <span className="inline-block w-2 h-2 bg-gold rounded-full animate-pulse" />
+                <span className="inline-block w-2 h-2 rounded-full animate-pulse" style={{ background: '#c9994a' }} />
                 <p className="font-cinzel text-parchment-dim text-sm">Waiting for opponent…</p>
               </div>
             )}
           </div>
 
-          <Button
-            variant="primary"
-            size="lg"
-            className="w-full"
+          <button
+            className="btn-gold w-full"
             onClick={handleStartGame}
             disabled={!guestJoined || isStarting}
           >
             {isStarting ? 'Starting…' : guestJoined ? '⚔️ Start Game' : 'Waiting for player…'}
-          </Button>
-
-          <button
-            onClick={handleCancelHost}
-            className="font-cinzel text-parchment-dim text-sm text-center hover:text-danger transition-colors"
-          >
-            Cancel &amp; close room
           </button>
         </motion.div>
+        </div>
       </div>
     );
   }
 
   if (phase === 'joining') {
     return (
-      <div className="min-h-screen bg-wood-dark flex flex-col items-center justify-center p-6">
-        <button
-          onClick={() => navigate('/')}
-          className="absolute top-4 left-4 text-parchment-dim hover:text-gold font-cinzel text-sm transition-colors"
-        >
-          ‹ Back
-        </button>
+      <div className="bg-oak min-h-screen flex flex-col" style={{ position: 'relative' }}>
+        <div className="candle-glow" />
+        <div className="flex items-center justify-between p-4 relative" style={{ borderBottom: '1px solid #2b2118' }}>
+          <button className="btn-link" onClick={() => navigate('/')}>‹ Back</button>
+          <BrandMark small />
+          <div className="w-12" />
+        </div>
 
+        <div className="flex-1 flex items-center justify-center p-6">
         <motion.div
-          className="w-full max-w-sm flex flex-col gap-5"
+          className="w-full flex flex-col gap-5"
+          style={{ maxWidth: 380 }}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
           <div className="text-center">
-            <div className="text-5xl mb-2">🔗</div>
-            <h1 className="font-cinzel font-black text-gold text-2xl">Join Room</h1>
-            <p className="font-cinzel text-parchment-dim text-sm mt-1">
+            <div className="font-cinzel" style={{ fontSize: 11, color: '#7a6a4b', letterSpacing: '0.3em', textTransform: 'uppercase', marginBottom: 8 }}>✦ Join with a Code ✦</div>
+            <p className="font-cinzel text-parchment-dim text-sm">
               Enter the 6-character code from your opponent
             </p>
           </div>
 
-          <div className="bg-wood border border-wood-light rounded-xl p-5 space-y-4">
+          <div className="panel" style={{ padding: '20px' }}>
             <input
               type="text"
               value={joinInput}
@@ -456,70 +448,88 @@ export function Lobby() {
               onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
               maxLength={6}
               placeholder="FKL123"
-              className="w-full bg-wood-darkest border border-wood-light rounded-lg px-4 py-3 text-parchment font-cinzel text-2xl text-center tracking-[0.25em] focus:outline-none focus:border-gold uppercase"
+              style={{
+                width: '100%',
+                background: 'rgba(10,6,3,0.6)',
+                border: '1px solid #7a5a1f',
+                borderRadius: 3,
+                padding: '12px 16px',
+                color: '#f3d989',
+                fontFamily: "'Cinzel', serif",
+                fontSize: 28,
+                textAlign: 'center',
+                letterSpacing: '0.25em',
+                outline: 'none',
+                textTransform: 'uppercase',
+                marginBottom: 12,
+              }}
+              onFocus={(e) => (e.target.style.borderColor = '#e8c374')}
+              onBlur={(e) => (e.target.style.borderColor = '#7a5a1f')}
             />
 
             {joinError && (
-              <p className="font-cinzel text-danger-light text-xs text-center bg-danger-dark/30 border border-danger rounded-lg px-3 py-2">
+              <p className="font-cinzel text-xs text-center panel px-3 py-2 mb-3" style={{ color: '#ff9a9a', borderColor: '#b13838' }}>
                 {joinError}
               </p>
             )}
 
-            <Button
-              variant="primary"
-              size="lg"
-              className="w-full"
+            <button
+              className="btn-gold w-full"
               onClick={handleJoin}
               disabled={joinInput.length < 6}
             >
-              🔗 Join Game
-            </Button>
+              🔗 Enter the Tavern
+            </button>
           </div>
 
-          <button
-            onClick={() => setPhase('choose')}
-            className="font-cinzel text-parchment-dim text-sm text-center hover:text-gold transition-colors"
-          >
+          <button className="btn-link" style={{ textAlign: 'center', margin: '0 auto' }} onClick={() => setPhase('choose')}>
             ‹ Back
           </button>
         </motion.div>
+        </div>
       </div>
     );
   }
 
   // phase === 'waiting-guest'
   return (
-    <div className="min-h-screen bg-wood-dark flex flex-col items-center justify-center p-6">
-      <motion.div
-        className="w-full max-w-sm flex flex-col gap-5 text-center"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <div>
-          <div className="text-5xl mb-2 animate-pulse">⏳</div>
-          <h1 className="font-cinzel font-black text-gold text-2xl">Joined Room</h1>
-          <p className="font-cinzel text-parchment-dim text-sm mt-1">
-            Code: <span className="text-gold font-bold tracking-widest">{roomCode}</span>
-          </p>
-        </div>
+    <div className="bg-oak min-h-screen flex flex-col" style={{ position: 'relative' }}>
+      <div className="candle-glow" />
+      <div className="flex items-center justify-between p-4 relative" style={{ borderBottom: '1px solid #2b2118' }}>
+        <button className="btn-link" onClick={handleLeaveGuest}>‹ Leave</button>
+        <BrandMark small />
+        <div className="w-12" />
+      </div>
 
-        <div className="bg-wood border border-wood-light rounded-xl p-5">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <span className="inline-block w-2 h-2 bg-gold rounded-full animate-pulse" />
-            <p className="font-cinzel text-parchment text-sm">Waiting for host to start…</p>
+      <div className="flex-1 flex items-center justify-center p-6">
+        <motion.div
+          className="w-full flex flex-col gap-5 text-center"
+          style={{ maxWidth: 380 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <div className="font-cinzel" style={{ fontSize: 11, color: '#7a6a4b', letterSpacing: '0.3em', textTransform: 'uppercase' }}>
+            ✦ Awaiting the Host ✦
           </div>
-          <p className="font-cinzel text-parchment-dim text-xs">
+
+          <div className="panel text-center" style={{ padding: '28px 24px' }}>
+            <div className="font-cinzel" style={{ fontSize: 10, color: '#7a6a4b', letterSpacing: '0.3em', textTransform: 'uppercase', marginBottom: 10 }}>
+              ✦ Seal of the Table ✦
+            </div>
+            <div className="font-cinzel" style={{ fontSize: 36, fontWeight: 900, color: '#f3d989', letterSpacing: '0.25em', marginBottom: 16 }}>
+              {roomCode}
+            </div>
+            <div className="flex items-center justify-center gap-2">
+              <span className="inline-block w-2 h-2 rounded-full animate-pulse" style={{ background: '#c9994a' }} />
+              <p className="font-cinzel text-parchment-dim text-sm">Host is preparing the table…</p>
+            </div>
+          </div>
+
+          <p className="font-cinzel text-parchment-dim" style={{ fontSize: 11 }}>
             The game will begin automatically when the host starts it.
           </p>
-        </div>
-
-        <button
-          onClick={handleLeaveGuest}
-          className="font-cinzel text-parchment-dim text-sm hover:text-danger transition-colors"
-        >
-          Leave room
-        </button>
-      </motion.div>
+        </motion.div>
+      </div>
     </div>
   );
 }

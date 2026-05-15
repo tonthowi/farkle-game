@@ -1,212 +1,249 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Button } from '../components/ui/Button';
 import { WelcomeModal } from '../components/ui/WelcomeModal';
+import { BrandMark } from '../components/ui/BrandMark';
+import { Flourish } from '../components/ui/Flourish';
+import { QuickReference } from '../components/game/QuickReference';
 import { useProfile } from '../hooks/useProfile';
-import { useAuth } from '../contexts/AuthContext';
 
-const PIP_POSITIONS: Record<number, [number, number][]> = {
-  1: [[50, 50]],
-  2: [[25, 25], [75, 75]],
-  3: [[25, 25], [50, 50], [75, 75]],
-  4: [[25, 25], [75, 25], [25, 75], [75, 75]],
-  5: [[25, 25], [75, 25], [50, 50], [25, 75], [75, 75]],
-  6: [[25, 20], [75, 20], [25, 50], [75, 50], [25, 80], [75, 80]],
-};
-
-function MiniDie({ face }: { face: number }) {
+function ModeCard({
+  title,
+  sub,
+  foot,
+  accent,
+  onClick,
+}: {
+  title: string;
+  sub: string;
+  foot: string;
+  accent?: boolean;
+  onClick: () => void;
+}) {
   return (
-    <div className="w-5 h-5 rounded-md bg-dice-face border border-dice-border shrink-0">
-      <svg viewBox="0 0 100 100" className="w-full h-full p-[3px]">
-        {(PIP_POSITIONS[face] ?? []).map(([cx, cy], i) => (
-          <circle key={i} cx={cx} cy={cy} r={face === 1 ? 11 : 9} fill="#2d1b00" />
-        ))}
-      </svg>
-    </div>
+    <button
+      onClick={onClick}
+      className="panel text-left"
+      style={{
+        padding: '22px 22px',
+        cursor: 'pointer',
+        border: accent ? '1px solid #e8c374' : '1px solid #7a5a1f',
+        background: accent
+          ? 'linear-gradient(180deg, rgba(70,50,20,0.85), rgba(30,20,8,0.92))'
+          : 'linear-gradient(180deg, rgba(40,30,18,0.85), rgba(15,10,5,0.92))',
+        position: 'relative',
+        overflow: 'hidden',
+        transition: 'transform 0.12s, border-color 0.15s',
+        fontFamily: 'inherit',
+        color: 'inherit',
+        borderRadius: 4,
+        width: '100%',
+      }}
+      onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-2px)')}
+      onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}
+    >
+      {accent && (
+        <div style={{
+          position: 'absolute', top: 12, right: 12,
+          fontSize: 9, letterSpacing: '0.2em', color: '#e8c374',
+          fontFamily: 'Cinzel, serif', textTransform: 'uppercase',
+          padding: '2px 7px', border: '1px solid #7a5a1f', borderRadius: 2,
+        }}>
+          Recommended
+        </div>
+      )}
+      <div className="font-cinzel" style={{ fontSize: 18, color: '#ece1c1', marginBottom: 6, letterSpacing: '0.03em', fontWeight: 600 }}>
+        {title}
+      </div>
+      <div style={{ fontSize: 15, color: '#cdb992', fontStyle: 'italic', marginBottom: 12 }}>
+        {sub}
+      </div>
+      <div className="font-cinzel" style={{ fontSize: 10, color: '#7a6a4b', display: 'flex', alignItems: 'center', gap: 8, textTransform: 'uppercase', letterSpacing: '0.15em' }}>
+        <span>{foot}</span>
+        <span style={{ flex: 1, height: 1, background: '#7a5a1f', opacity: 0.5 }} />
+        <span style={{ color: '#e8c374' }}>Enter ›</span>
+      </div>
+    </button>
+  );
+}
+
+function SecondaryTile({ title, sub, icon, onClick }: { title: string; sub: string; icon: string; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        background: 'rgba(20,12,5,0.5)',
+        border: '1px solid #7a5a1f',
+        borderRadius: 3,
+        padding: '14px 16px',
+        cursor: 'pointer',
+        textAlign: 'left',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        color: 'inherit',
+        fontFamily: 'inherit',
+        transition: 'all 0.15s',
+        width: '100%',
+      }}
+      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(201,153,74,0.08)'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#c9994a'; }}
+      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(20,12,5,0.5)'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#7a5a1f'; }}
+    >
+      <span style={{ fontSize: 20 }}>{icon}</span>
+      <div>
+        <div className="font-cinzel" style={{ fontSize: 12, letterSpacing: '0.1em', color: '#ece1c1', fontWeight: 600 }}>{title}</div>
+        <div className="font-cinzel" style={{ fontSize: 10, color: '#7a6a4b', marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{sub}</div>
+      </div>
+    </button>
   );
 }
 
 export function Home() {
   const navigate = useNavigate();
   const { profile } = useProfile();
-  const { signOut } = useAuth();
 
-  // Show WelcomeModal on first visit (no saved profile in localStorage)
   const [showWelcome, setShowWelcome] = useState(
     () => !localStorage.getItem('farkle_profile'),
   );
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 },
-  };
 
   return (
     <>
       {showWelcome && <WelcomeModal onComplete={() => setShowWelcome(false)} />}
 
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-wood-dark relative overflow-hidden">
-        {/* Background decoration */}
-        <div className="absolute inset-0 opacity-5">
-          <div className="absolute top-0 left-0 w-64 h-64 border-b-2 border-r-2 border-gold rounded-br-full" />
-          <div className="absolute bottom-0 right-0 w-64 h-64 border-t-2 border-l-2 border-gold rounded-tl-full" />
-        </div>
+      <div className="bg-oak" style={{ minHeight: '100vh', position: 'relative' }}>
+        <div className="candle-glow" />
 
-        <motion.div
-          className="relative z-10 flex flex-col items-center gap-8 w-full max-w-sm"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          {/* Title */}
-          <motion.div variants={itemVariants} className="text-center">
-            <motion.div
-              className="text-7xl mb-3"
-              animate={{ rotate: [0, 10, -10, 0] }}
-              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-            >
-              🎲
-            </motion.div>
-            <h1 className="font-cinzel font-black text-gold text-5xl tracking-wider drop-shadow-lg">
+        <div style={{ maxWidth: 520, margin: '0 auto', padding: '24px 20px 60px', position: 'relative' }}>
+
+          {/* Top bar */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+            <BrandMark small />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              <div className="font-cinzel" style={{ fontSize: 11, color: '#7a6a4b', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
+                <span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: '#7fc88f', marginRight: 6, boxShadow: '0 0 6px #7fc88f' }} />
+                Online
+              </div>
+              <button className="btn-link" onClick={() => navigate('/profile')}>Profile</button>
+            </div>
+          </div>
+
+          {/* Tavern banner */}
+          <div style={{ textAlign: 'center', padding: '28px 0 20px' }}>
+            <svg width="52" height="52" viewBox="0 0 64 64" style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.6))' }}>
+              <defs>
+                <linearGradient id="bigdie" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0%" stopColor="#fbf6ea" />
+                  <stop offset="100%" stopColor="#c5b89c" />
+                </linearGradient>
+              </defs>
+              <rect x="6" y="6" width="52" height="52" rx="10" fill="url(#bigdie)" stroke="#a89870" strokeWidth="1.5" />
+              <circle cx="20" cy="20" r="3.5" fill="#1a1208" />
+              <circle cx="44" cy="20" r="3.5" fill="#1a1208" />
+              <circle cx="32" cy="32" r="3.5" fill="#1a1208" />
+              <circle cx="20" cy="44" r="3.5" fill="#1a1208" />
+              <circle cx="44" cy="44" r="3.5" fill="#1a1208" />
+            </svg>
+            <h1 className="font-cinzel" style={{ margin: '12px 0 4px', fontSize: 46, letterSpacing: '0.36em', color: '#f3d989', fontWeight: 700, textShadow: '0 4px 12px rgba(0,0,0,0.7), 0 0 30px rgba(232,195,116,0.25)' }}>
               FARKLE
             </h1>
-            <p className="font-cinzel text-parchment-dim text-sm tracking-[0.3em] mt-1">
-              TAVERN DICE GAME
-            </p>
-          </motion.div>
+            <div className="font-cinzel" style={{ color: '#7a6a4b', fontSize: 11, letterSpacing: '0.5em' }}>
+              ✦ A Tavern Dice Game ✦
+            </div>
+          </div>
 
-          {/* Profile peek */}
+          {/* Profile strip */}
           <motion.div
-            variants={itemVariants}
-            className="bg-wood border border-wood-light rounded-xl px-5 py-3 flex items-center gap-3 w-full"
+            className="panel"
+            style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
           >
-            <span className="text-3xl">{profile.avatar}</span>
-            <div className="min-w-0 flex-1">
-              <p className="font-cinzel text-parchment text-sm font-semibold truncate">
+            <span style={{ fontSize: 32, lineHeight: 1, flexShrink: 0 }}>{profile.avatar}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="font-cinzel" style={{ fontSize: 16, color: '#ece1c1', fontWeight: 600, letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {profile.name}
-              </p>
-              <p className="text-parchment-dim text-xs font-cinzel">
-                {profile.stats.wins}W · {profile.stats.losses}L
-              </p>
+              </div>
+              <div className="font-cinzel" style={{ fontSize: 10, color: '#7a6a4b', marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.2em' }}>
+                Tavern Regular
+              </div>
             </div>
-            <div className="ml-auto flex items-center gap-3 shrink-0">
-              <button
-                onClick={() => navigate('/profile')}
-                className="text-parchment-dim text-xs font-cinzel hover:text-gold transition-colors"
-              >
-                Edit ›
-              </button>
-              <button
-                onClick={signOut}
-                className="text-parchment-dim text-xs font-cinzel hover:text-danger transition-colors"
-                title="Reset identity"
-              >
-                Reset
-              </button>
+            <div style={{ display: 'flex', gap: 20, paddingRight: 14, borderRight: '1px solid #7a5a1f', marginRight: 4 }}>
+              <div style={{ textAlign: 'center' }}>
+                <div className="font-cinzel" style={{ fontSize: 9, color: '#7a6a4b', textTransform: 'uppercase', letterSpacing: '0.15em' }}>Wins</div>
+                <div className="font-cinzel" style={{ fontSize: 18, color: '#e8c374', fontWeight: 700, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{profile.stats.wins}</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div className="font-cinzel" style={{ fontSize: 9, color: '#7a6a4b', textTransform: 'uppercase', letterSpacing: '0.15em' }}>Losses</div>
+                <div className="font-cinzel" style={{ fontSize: 18, color: '#cdb992', fontWeight: 700, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{profile.stats.losses}</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div className="font-cinzel" style={{ fontSize: 9, color: '#7a6a4b', textTransform: 'uppercase', letterSpacing: '0.15em' }}>Best</div>
+                <div className="font-cinzel" style={{ fontSize: 18, color: '#e8c374', fontWeight: 700, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{profile.stats.bestScore.toLocaleString()}</div>
+              </div>
             </div>
+            <button className="btn-link" onClick={() => navigate('/profile')}>Edit ›</button>
           </motion.div>
 
-          {/* Play buttons */}
-          <motion.div variants={itemVariants} className="flex flex-col gap-3 w-full">
-            <Button
-              variant="primary"
-              size="lg"
-              className="w-full"
-              onClick={() => navigate('/setup?mode=vs-computer')}
-            >
-              ⚔️ vs Computer
-            </Button>
-            <Button
-              variant="secondary"
-              size="lg"
-              className="w-full"
-              onClick={() => navigate('/setup?mode=local-multiplayer')}
-            >
-              👥 Pass &amp; Play
-            </Button>
-            <Button
-              variant="secondary"
-              size="lg"
-              className="w-full"
-              onClick={() => navigate('/lobby?action=create')}
-            >
-              🏰 Create Room
-            </Button>
-            <Button
-              variant="secondary"
-              size="lg"
-              className="w-full"
-              onClick={() => navigate('/lobby?action=join')}
-            >
-              🔗 Join Room
-            </Button>
-          </motion.div>
-
-          {/* Nav buttons */}
-          <motion.div variants={itemVariants} className="flex gap-3 w-full">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="flex-1"
-              onClick={() => navigate('/history')}
-            >
-              📜 History
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="flex-1"
-              onClick={() => navigate('/leaderboard')}
-            >
-              🏆 Ranks
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="flex-1"
-              onClick={() => navigate('/profile')}
-            >
-              👤 Profile
-            </Button>
-          </motion.div>
-
-          {/* Scoring cheatsheet */}
+          {/* Mode cards — 2 column grid */}
           <motion.div
-            variants={itemVariants}
-            className="w-full bg-wood/50 border border-wood-light rounded-xl p-4"
+            style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14, marginBottom: 28 }}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
           >
-            <p className="font-cinzel text-gold text-xs tracking-wider text-center mb-3 uppercase">Quick Rules</p>
-            <div className="flex flex-col divide-y divide-wood-light/50">
-              {[
-                { dice: [1],             label: 'Single 1',        pts: '100 pts'   },
-                { dice: [5],             label: 'Single 5',        pts: '50 pts'    },
-                { dice: [1, 1, 1],       label: 'Three 1s',        pts: '1,000 pts' },
-                { dice: [4, 4, 4],       label: 'Three of a Kind', pts: 'Face × 100'},
-                { dice: [1, 2, 3, 4, 5, 6], label: 'Straight 1–6', pts: '1,500 pts'},
-                { dice: [2, 2, 4, 4, 6, 6], label: 'Three Pairs',  pts: '750 pts'  },
-              ].map(({ dice, label, pts }) => (
-                <div key={label} className="py-2 first:pt-0 last:pb-0">
-                  <div className="flex justify-between items-center mb-1.5">
-                    <span className="font-cinzel text-parchment-dim text-xs">{label}</span>
-                    <span className="font-cinzel text-gold font-semibold text-xs">{pts}</span>
-                  </div>
-                  <div className="flex gap-1">
-                    {dice.map((face, i) => <MiniDie key={i} face={face} />)}
-                  </div>
-                </div>
-              ))}
-            </div>
-            <p className="text-center text-parchment-dim text-xs font-cinzel mt-3 pt-3 border-t border-wood-light">
-              First to 10,000 wins!
-            </p>
+            <ModeCard
+              title="Duel the Tavernkeep"
+              sub="Single player vs the house"
+              foot="Three difficulties"
+              accent
+              onClick={() => navigate('/setup?mode=vs-computer')}
+            />
+            <ModeCard
+              title="Pass & Play"
+              sub="Two adventurers, one device"
+              foot="Local · Take turns"
+              onClick={() => navigate('/setup?mode=local-multiplayer')}
+            />
+            <ModeCard
+              title="Open a Private Table"
+              sub="Host a room, share a code"
+              foot="Online · 2 players"
+              onClick={() => navigate('/lobby?action=create')}
+            />
+            <ModeCard
+              title="Join with a Code"
+              sub="Enter a friend's tavern"
+              foot="Online · Quick play"
+              onClick={() => navigate('/lobby?action=join')}
+            />
           </motion.div>
-        </motion.div>
+
+          {/* Flourish divider */}
+          <Flourish>Tavern Halls</Flourish>
+
+          {/* Secondary tiles */}
+          <motion.div
+            style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginTop: 16, marginBottom: 28 }}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+          >
+            <SecondaryTile title="Champions" sub="Leaderboard" icon="🏆" onClick={() => navigate('/leaderboard')} />
+            <SecondaryTile title="Chronicle" sub="Match history" icon="📜" onClick={() => navigate('/history')} />
+            <SecondaryTile title="Rules" sub="How to score" icon="📖" onClick={() => navigate('/profile')} />
+          </motion.div>
+
+          {/* Quick rules */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <QuickReference />
+          </motion.div>
+
+        </div>
       </div>
     </>
   );

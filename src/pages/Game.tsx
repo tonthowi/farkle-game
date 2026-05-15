@@ -18,7 +18,8 @@ import { FarkleAlert } from '../components/game/FarkleAlert';
 import { GameOverModal } from '../components/game/GameOverModal';
 import { QuitConfirmModal } from '../components/game/QuitConfirmModal';
 import { Modal } from '../components/ui/Modal';
-import { Button } from '../components/ui/Button';
+import { BrandMark } from '../components/ui/BrandMark';
+import { QuickReference } from '../components/game/QuickReference';
 import { formatScore } from '../utils/format';
 
 interface GameLocationState {
@@ -166,28 +167,39 @@ export function Game() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-wood-dark">
+    <div className="bg-oak min-h-screen flex flex-col" style={{ position: 'relative' }}>
+      <div className="candle-glow" />
+
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-wood-light">
+      <div className="flex items-center justify-between px-4 py-3 relative" style={{ borderBottom: '1px solid #2b2118' }}>
         <button
           onClick={handleQuit}
-          className="text-parchment-dim hover:text-gold font-cinzel text-sm transition-colors"
+          className="btn-link"
         >
           ‹ Quit
         </button>
-        <h1 className="font-cinzel text-gold font-bold tracking-wider">FARKLE</h1>
-        <div className="text-parchment-dim font-cinzel text-xs">
-          {state.mode === 'vs-computer'
-            ? `vs ${state.difficulty}`
-            : state.mode === 'online-multiplayer'
-            ? '🌐 Online'
-            : 'Local'}
+        <BrandMark small />
+        <div className="flex items-center gap-2">
+          <span className="font-cinzel text-parchment-dim" style={{ fontSize: 11, letterSpacing: '0.15em', textTransform: 'uppercase' }}>
+            {state.mode === 'vs-computer'
+              ? `vs ${state.difficulty}`
+              : state.mode === 'online-multiplayer'
+              ? '🌐 Online'
+              : 'Local'}
+          </span>
+          <button
+            onClick={sfx.toggleMute}
+            aria-label={sfx.isMuted ? 'Unmute sound effects' : 'Mute sound effects'}
+            className="text-parchment-dim hover:text-gold transition-colors text-sm leading-none"
+          >
+            {sfx.isMuted ? '🔇' : '🔊'}
+          </button>
         </div>
       </div>
 
       {/* Connection lost banner */}
       {isOnlineMode && !isConnected && (
-        <div className="bg-danger/90 text-parchment-bright font-cinzel text-xs text-center py-2 px-4">
+        <div className="font-cinzel text-xs text-center py-2 px-4" style={{ background: 'rgba(177,56,56,0.9)', color: '#ece1c1' }}>
           Connection lost — attempting to reconnect…
         </div>
       )}
@@ -195,7 +207,8 @@ export function Game() {
       {/* Opponent's turn banner */}
       {isOnlineMode && !isMyTurn && state.phase !== 'game-over' && (
         <motion.div
-          className="bg-wood border-b border-wood-light px-4 py-2 text-center"
+          className="px-4 py-2 text-center"
+          style={{ background: 'rgba(31,24,16,0.8)', borderBottom: '1px solid #2b2118' }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
         >
@@ -211,6 +224,7 @@ export function Game() {
           players={state.players}
           currentPlayerIndex={state.currentPlayerIndex}
           targetScore={state.targetScore}
+          turnScore={state.turnScore + state.selectedScore}
         />
         <TurnPanel state={state} />
         <DiceBoard
@@ -226,6 +240,7 @@ export function Game() {
           onBank={handleBank}
           isHumanTurn={isMyTurn}
         />
+        <QuickReference collapsible />
       </div>
 
       <FarkleAlert state={state} onConfirm={handleConfirmFarkle} isHumanTurn={isMyTurn} />
@@ -235,12 +250,12 @@ export function Game() {
         <p className="font-cinzel text-parchment text-center mb-4">
           All dice scored! You must roll all 6 dice again.
         </p>
-        <p className="font-cinzel text-gold text-center text-lg font-bold mb-6">
+        <p className="font-cinzel text-gold-bright text-center text-lg font-bold mb-6 tabular-nums">
           Turn score: {formatScore(state.turnScore)}
         </p>
-        <Button variant="primary" size="lg" className="w-full" onClick={handleConfirmHotDice}>
+        <button className="btn-gold w-full" onClick={handleConfirmHotDice}>
           Roll All 6!
-        </Button>
+        </button>
       </Modal>
 
       {/* Pass-device modal (local multiplayer only) */}
@@ -249,13 +264,13 @@ export function Game() {
           <p className="font-cinzel text-parchment text-center mb-2">
             {state.players[(state.currentPlayerIndex + state.players.length) % state.players.length]?.name}'s turn is over.
           </p>
-          <p className="font-cinzel text-gold text-center text-lg mb-6">
+          <p className="font-cinzel text-gold-bright text-center text-lg mb-6">
             Pass to{' '}
             <span className="font-bold">{state.players[state.currentPlayerIndex]?.name}</span>
           </p>
-          <Button variant="primary" size="lg" className="w-full" onClick={confirmPass}>
+          <button className="btn-gold w-full" onClick={confirmPass}>
             I'm Ready ›
-          </Button>
+          </button>
         </Modal>
       )}
 

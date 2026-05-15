@@ -17,7 +17,7 @@ function MatchRow({ record }: { record: MatchRecord }) {
     >
       {/* Top row */}
       <div className="flex items-center justify-between mb-2">
-        <span className={`font-cinzel font-bold text-sm px-2 py-0.5 rounded ${humanWon ? 'bg-felt text-gold' : 'bg-danger-dark text-danger-light'}`}>
+        <span className={`font-cinzel font-bold text-sm px-2 py-0.5 rounded ${humanWon ? 'bg-felt text-gold' : 'bg-danger text-danger-bright'}`}>
           {humanWon ? '🏆 Win' : '💀 Loss'}
         </span>
         <span className="text-parchment-dim font-cinzel text-xs">

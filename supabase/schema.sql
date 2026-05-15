@@ -175,13 +175,11 @@ create index if not exists idx_history_user_id   on match_history(user_id);
 create index if not exists idx_history_created_at on match_history(created_at);
 
 -- ── Room cleanup ──────────────────────────────────────────────
--- Delete finished rooms older than 1 hour, and stale waiting rooms older than 24 hours.
--- Run this as a Supabase scheduled Edge Function or pg_cron job, e.g.:
---   select cron.schedule('cleanup-rooms', '0 * * * *', $$
---     delete from rooms where (status = 'finished' and updated_at < now() - interval '1 hour')
---       or (status = 'waiting' and created_at < now() - interval '24 hours');
---   $$);
--- (Requires the pg_cron extension to be enabled in your Supabase project.)
+-- Handled by the `cleanup-rooms` Supabase Edge Function (hourly cron).
+-- Deletes: finished rooms >1h old · waiting/ready rooms >24h old · playing rooms >2h old.
+-- Deploy: Supabase dashboard → Edge Functions → create "cleanup-rooms" → paste
+--   supabase/functions/cleanup-rooms/index.ts → set schedule "0 * * * *".
+-- Note: cleanup uses created_at (no updated_at column in this schema).
 
 -- ── Realtime ─────────────────────────────────────────────────
 -- Enable postgres_changes events for the rooms table so hosts

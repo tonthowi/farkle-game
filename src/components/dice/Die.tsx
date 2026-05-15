@@ -4,7 +4,6 @@ import type { Die as DieType, DieValue } from '../../types/game';
 import { cn } from '../../utils/cn';
 
 // ─── pip positions ────────────────────────────────────────────────────────────
-// Coordinates in 0-100 SVG viewBox space
 const PIP_POSITIONS: Record<number, [number, number][]> = {
   1: [[50, 50]],
   2: [[25, 25], [75, 75]],
@@ -15,8 +14,6 @@ const PIP_POSITIONS: Record<number, [number, number][]> = {
 };
 
 // ─── face definitions ─────────────────────────────────────────────────────────
-// Standard die (opposite faces sum to 7):
-//   front=1 / back=6 | top=2 / bottom=5 | right=3 / left=4
 const CUBE_FACES: { faceClass: string; value: DieValue }[] = [
   { faceClass: 'die-face-front',  value: 1 },
   { faceClass: 'die-face-back',   value: 6 },
@@ -27,14 +24,13 @@ const CUBE_FACES: { faceClass: string; value: DieValue }[] = [
 ];
 
 // ─── target rotations per value ───────────────────────────────────────────────
-// Rotate the cube so the matching face points toward the viewer
 const FACE_ROTATIONS: Record<DieValue, { x: number; y: number }> = {
-  1: { x: 0,   y: 0   },  // front → viewer
-  2: { x: -90, y: 0   },  // top → viewer (tilt forward)
-  3: { x: 0,   y: -90 },  // right → viewer (turn left)
-  4: { x: 0,   y: 90  },  // left → viewer (turn right)
-  5: { x: 90,  y: 0   },  // bottom → viewer (tilt backward)
-  6: { x: 0,   y: 180 },  // back → viewer (180° turn)
+  1: { x: 0,   y: 0   },
+  2: { x: -90, y: 0   },
+  3: { x: 0,   y: -90 },
+  4: { x: 0,   y: 90  },
+  5: { x: 90,  y: 0   },
+  6: { x: 0,   y: 180 },
 };
 
 // ─── DieFace sub-component ────────────────────────────────────────────────────
@@ -48,27 +44,29 @@ interface DieFaceProps {
 }
 
 function DieFace({ faceClass, value, isSelected, isLocked, isRolling, isDisabled }: DieFaceProps) {
+  const faceStyle: React.CSSProperties = isSelected && !isLocked
+    ? {
+        background: 'radial-gradient(circle at 30% 25%, #fff5d0 0%, #f3d989 50%, #c9994a 100%)',
+        border: '1px solid #c9994a',
+      }
+    : isDisabled
+    ? {
+        background: 'radial-gradient(circle at 30% 25%, #fbf6ea 0%, #ece2cc 40%, #c5b89c 100%)',
+        border: '1px solid rgba(168,152,112,0.4)',
+      }
+    : {
+        background: 'radial-gradient(circle at 30% 25%, #fbf6ea 0%, #ece2cc 40%, #c5b89c 100%)',
+        border: '1px solid #a89870',
+      };
+
   return (
     <div
-      className={cn(
-        'die-face rounded-xl overflow-hidden border',
-        faceClass,
-        isSelected && !isLocked
-          ? 'border-gold bg-dice-face'
-          : isDisabled
-            ? 'border-dice-border/40 bg-dice-face'
-            : 'border-dice-border bg-dice-face',
-        isLocked && 'opacity-60',
-      )}
+      className={cn('die-face rounded-xl overflow-hidden', faceClass, isLocked && 'opacity-60')}
+      style={faceStyle}
     >
-
-      {/* Pip dots — hidden while rolling */}
       <svg
         viewBox="0 0 100 100"
-        className={cn(
-          'absolute inset-0 w-full h-full p-1.5 relative z-10',
-          isRolling && 'opacity-0',
-        )}
+        className={cn('absolute inset-0 w-full h-full p-1.5 relative z-10', isRolling && 'opacity-0')}
       >
         {(PIP_POSITIONS[value] ?? []).map(([cx, cy], i) => (
           <circle
@@ -76,7 +74,7 @@ function DieFace({ faceClass, value, isSelected, isLocked, isRolling, isDisabled
             cx={cx}
             cy={cy}
             r={value === 1 ? 11 : 8}
-            fill={isSelected ? '#2d1b00' : '#3d2b00'}
+            fill={isSelected ? '#0a0603' : '#1a1208'}
           />
         ))}
       </svg>
@@ -95,7 +93,6 @@ export function Die({ die, onClick, disabled }: DieProps) {
   const isClickable = !disabled && !die.isLocked && onClick;
   const isDisabled = Boolean(disabled && !die.isLocked);
 
-  // ── Accumulated rotation state (never resets to 0 — prevents backtracking) ──
   const [rot, setRot] = useState<{ x: number; y: number }>(() => FACE_ROTATIONS[die.value]);
   const wasRolling = useRef(false);
 
@@ -104,7 +101,6 @@ export function Die({ die, onClick, disabled }: DieProps) {
     const rollingEnded   = !die.isRolling && wasRolling.current;
 
     if (rollingStarted) {
-      // Spin the cube: 3–5 full rotations + random offset so each die is unique
       setRot(prev => ({
         x: prev.x + 360 * (3 + Math.random() * 2) + (Math.random() - 0.5) * 180,
         y: prev.y + 360 * (3 + Math.random() * 2) + (Math.random() - 0.5) * 180,
@@ -112,7 +108,6 @@ export function Die({ die, onClick, disabled }: DieProps) {
     }
 
     if (rollingEnded) {
-      // Settle to the nearest forward-equivalent of the correct face angle
       const target = FACE_ROTATIONS[die.value];
       setRot(prev => ({
         x: Math.ceil(prev.x / 360) * 360 + target.x,
@@ -130,20 +125,17 @@ export function Die({ die, onClick, disabled }: DieProps) {
     : `Die showing ${die.value}`;
 
   return (
-    // Outer wrapper: perspective context + click target
     <div
-      className={cn(
-        'relative select-none',
-        isClickable && 'cursor-pointer',
-        isDisabled && 'opacity-40 grayscale',
-      )}
+      className={cn('relative select-none', isClickable && 'cursor-pointer', isDisabled && 'opacity-40 grayscale')}
       style={{ width: 64, height: 64, perspective: '600px' }}
       onClick={isClickable ? onClick : undefined}
+      onKeyDown={isClickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } } : undefined}
       role={isClickable ? 'button' : undefined}
+      tabIndex={isClickable ? 0 : undefined}
       aria-label={ariaLabel}
       aria-pressed={die.isSelected && !die.isLocked ? true : undefined}
     >
-      {/* 3D cube — Framer Motion drives rotateX / rotateY */}
+      {/* 3D cube */}
       <motion.div
         style={{ transformStyle: 'preserve-3d', width: '100%', height: '100%' }}
         animate={{
@@ -172,20 +164,20 @@ export function Die({ die, onClick, disabled }: DieProps) {
         ))}
       </motion.div>
 
-      {/* Lock badge — flat, outside the 3D container so it never distorts */}
+      {/* Lock badge */}
       {die.isLocked && (
-        <div className="absolute -top-2 -right-2 w-5 h-5 z-20 bg-gold rounded-full
-                        flex items-center justify-center text-xs text-wood-dark font-bold
-                        shadow-md">
+        <div className="absolute -top-2 -right-2 w-5 h-5 z-20 rounded-full
+                        flex items-center justify-center text-xs font-bold shadow-md"
+          style={{ background: '#c9994a', color: '#0a0603' }}>
           ✓
         </div>
       )}
 
-      {/* Selection glow ring — flat overlay, pulsing */}
+      {/* Selection glow ring */}
       {die.isSelected && !die.isLocked && (
         <motion.div
           className="absolute inset-0 rounded-xl pointer-events-none z-10"
-          style={{ boxShadow: '0 0 16px 6px rgba(212, 160, 23, 0.5)' }}
+          style={{ boxShadow: '0 0 16px 6px rgba(232,195,116,0.6)' }}
           animate={{ opacity: [0.6, 1, 0.6] }}
           transition={{ duration: 1.2, repeat: Infinity }}
         />

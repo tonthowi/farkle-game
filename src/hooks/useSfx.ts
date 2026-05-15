@@ -1,4 +1,4 @@
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useState } from 'react';
 
 const STORAGE_KEY = 'farkle_sfx_muted';
 
@@ -12,6 +12,16 @@ function getAudioContext(): AudioContext | null {
 
 export function useSfx() {
   const ctxRef = useRef<AudioContext | null>(null);
+  const [isMuted, setIsMuted] = useState(() => localStorage.getItem(STORAGE_KEY) === 'true');
+
+  const toggleMute = useCallback(() => {
+    setIsMuted(prev => {
+      const next = !prev;
+      if (next) localStorage.setItem(STORAGE_KEY, 'true');
+      else localStorage.removeItem(STORAGE_KEY);
+      return next;
+    });
+  }, []);
 
   function ctx(): AudioContext | null {
     if (localStorage.getItem(STORAGE_KEY) === 'true') return null;
@@ -108,5 +118,5 @@ export function useSfx() {
     });
   }, []);
 
-  return { playRoll, playSelect, playBank, playFarkle, playWin };
+  return { playRoll, playSelect, playBank, playFarkle, playWin, isMuted, toggleMute };
 }
